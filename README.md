@@ -12,6 +12,12 @@ The npm package name `servicemap` is available, so users can run the clean comma
 npx servicemap
 ```
 
+To install the bundled AI skill so `/servicemap` appears in compatible coding agents:
+
+```bash
+npx servicemap install-skill
+```
+
 After a global install, the command is:
 
 ```bash
@@ -31,6 +37,7 @@ servicemap --root <project-path>
 servicemap --mode page
 servicemap --mode desktop
 servicemap --dry-run
+servicemap install-skill
 ```
 
 ## Contents
@@ -47,5 +54,6 @@ servicemap --dry-run
 ```bash
 node bin/servicemap.mjs --root demo-project --dry-run
 node bin/servicemap.mjs --root no-website-demo --dry-run
+node bin/servicemap.mjs install-skill --dry-run
 python3 /Users/dougie/.codex/skills/.system/skill-creator/scripts/quick_validate.py servicemap
 ```

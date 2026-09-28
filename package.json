@@ -1,6 +1,6 @@
 {
   "name": "servicemap",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Generate an internal service map page or desktop app for a software project.",
   "type": "module",
   "bin": {
@@ -12,7 +12,7 @@
     "README.md"
   ],
   "scripts": {
-    "test": "node bin/servicemap.mjs --root demo-project --dry-run && node bin/servicemap.mjs --root no-website-demo --dry-run",
+    "test": "node bin/servicemap.mjs --root demo-project --dry-run && node bin/servicemap.mjs --root no-website-demo --dry-run && node bin/servicemap.mjs install-skill --dry-run",
     "validate:skill": "python3 /Users/dougie/.codex/skills/.system/skill-creator/scripts/quick_validate.py servicemap"
   },
   "keywords": [
