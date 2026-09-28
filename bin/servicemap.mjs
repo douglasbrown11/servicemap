@@ -75,6 +75,9 @@ function parseArgs() {
     agent: 'codex',
     targets: null,
     skillsDir: null,
+    invokedWithoutArgs: args.length === 0,
+    explicitCommand: false,
+    generationRequested: false,
   };
 
   if (args[0] === 'skills' && args[1] === 'install') {
@@ -84,12 +87,19 @@ function parseArgs() {
 
   if (args[0] && !args[0].startsWith('-')) {
     options.command = args.shift();
+    options.explicitCommand = true;
   }
 
   for (let index = 0; index < args.length; index += 1) {
     const arg = args[index];
-    if (arg === '--root') options.root = args[++index] ?? options.root;
-    if (arg === '--mode') options.mode = args[++index] ?? options.mode;
+    if (arg === '--root') {
+      options.root = args[++index] ?? options.root;
+      options.generationRequested = true;
+    }
+    if (arg === '--mode') {
+      options.mode = args[++index] ?? options.mode;
+      options.generationRequested = true;
+    }
     if (arg === '--agent') options.agent = args[++index] ?? options.agent;
     if (arg === '--targets') options.targets = (args[++index] ?? '').split(',').map((target) => target.trim()).filter(Boolean);
     if (arg === '--skills-dir') options.skillsDir = resolve(args[++index] ?? '.');
@@ -108,12 +118,15 @@ function help() {
   console.log(`Servicemap
 
 Usage:
-  servicemap [--root <project>] [--mode auto|page|desktop] [--dry-run]
+  servicemap
+  servicemap generate [--root <project>] [--mode auto|page|desktop] [--dry-run]
+  servicemap --root <project> [--mode auto|page|desktop] [--dry-run]
   servicemap install-skill [--survey] [--agent codex|claude|grok|all] [--targets <ids>]
   servicemap skills install [--survey] [--agent codex|claude|grok|all]
 
 Examples:
   npx servicemap
+  npx servicemap generate --root ../my-app
   npx servicemap -- --root ../my-app
   npx servicemap install-skill
   npx servicemap install-skill --survey
@@ -303,6 +316,11 @@ async function main() {
   if (options.help) {
     help();
     return;
+  }
+
+  if (options.command === 'generate' && !options.explicitCommand && !options.generationRequested) {
+    options.command = 'install-skill';
+    options.survey = true;
   }
 
   if (options.command === 'install-skill' || options.command === 'install') {

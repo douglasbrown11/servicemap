@@ -6,11 +6,14 @@ The skill scans a software project for external services, resolves service logos
 
 ## Terminal Use
 
-The npm package name `servicemap` is available, so users can run the clean command:
+The npm package name `servicemap` is available, so users can run the clean command and choose where to install it:
 
 ```bash
 npx servicemap
 ```
+
+That opens the interactive install survey.
+It lets users choose compatible AI coding agents and model environments.
 
 To install the bundled AI skill so `/servicemap` appears in compatible coding agents:
 
@@ -55,6 +58,8 @@ npm install -g servicemap
 CLI options:
 
 ```bash
+servicemap
+servicemap generate --root <project-path>
 servicemap --root <project-path>
 servicemap --mode page
 servicemap --mode desktop
@@ -81,8 +86,9 @@ servicemap skills install --agent codex
 ## Validation
 
 ```bash
-node bin/servicemap.mjs --root demo-project --dry-run
+node bin/servicemap.mjs generate --root demo-project --dry-run
 node bin/servicemap.mjs --root no-website-demo --dry-run
+node bin/servicemap.mjs --dry-run
 node bin/servicemap.mjs install-skill --agent all --dry-run
 node bin/servicemap.mjs install-skill --targets codex,chatgpt,cursor --dry-run
 node bin/servicemap.mjs skills install --agent claude --dry-run
