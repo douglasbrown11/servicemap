@@ -18,6 +18,19 @@ To install the bundled AI skill so `/servicemap` appears in compatible coding ag
 npx servicemap install-skill
 ```
 
+That installs to the Codex-style user skill folder, matching the way Caveman installs a local skill folder.
+To install for several agents on the same computer:
+
+```bash
+npx servicemap install-skill --agent all
+```
+
+The Caveman-style command shape also works:
+
+```bash
+npx servicemap skills install --agent claude
+```
+
 After a global install, the command is:
 
 ```bash
@@ -38,6 +51,11 @@ servicemap --mode page
 servicemap --mode desktop
 servicemap --dry-run
 servicemap install-skill
+servicemap install-skill --agent codex
+servicemap install-skill --agent claude
+servicemap install-skill --agent grok
+servicemap install-skill --agent all
+servicemap skills install --agent codex
 ```
 
 ## Contents
@@ -54,6 +72,7 @@ servicemap install-skill
 ```bash
 node bin/servicemap.mjs --root demo-project --dry-run
 node bin/servicemap.mjs --root no-website-demo --dry-run
-node bin/servicemap.mjs install-skill --dry-run
+node bin/servicemap.mjs install-skill --agent all --dry-run
+node bin/servicemap.mjs skills install --agent claude --dry-run
 python3 /Users/dougie/.codex/skills/.system/skill-creator/scripts/quick_validate.py servicemap
 ```

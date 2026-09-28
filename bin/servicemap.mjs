@@ -18,8 +18,14 @@ function parseArgs() {
     root: process.cwd(),
     mode: 'auto',
     dryRun: false,
-    skillsDir: resolve(homedir(), '.agents/skills'),
+    agent: 'codex',
+    skillsDir: null,
   };
+
+  if (args[0] === 'skills' && args[1] === 'install') {
+    options.command = 'install-skill';
+    args.splice(0, 2);
+  }
 
   if (args[0] && !args[0].startsWith('-')) {
     options.command = args.shift();
@@ -29,7 +35,9 @@ function parseArgs() {
     const arg = args[index];
     if (arg === '--root') options.root = args[++index] ?? options.root;
     if (arg === '--mode') options.mode = args[++index] ?? options.mode;
-    if (arg === '--skills-dir') options.skillsDir = resolve(args[++index] ?? options.skillsDir);
+    if (arg === '--agent') options.agent = args[++index] ?? options.agent;
+    if (arg === '--skills-dir') options.skillsDir = resolve(args[++index] ?? '.');
+    if (arg === '--user') options.user = true;
     if (arg === '--dry-run') options.dryRun = true;
     if (arg === '--help' || arg === '-h') options.help = true;
   }
@@ -43,12 +51,15 @@ function help() {
 
 Usage:
   servicemap [--root <project>] [--mode auto|page|desktop] [--dry-run]
-  servicemap install-skill [--skills-dir <path>]
+  servicemap install-skill [--agent codex|claude|grok|all] [--skills-dir <path>]
+  servicemap skills install [--agent codex|claude|grok|all]
 
 Examples:
   npx servicemap
   npx servicemap -- --root ../my-app
   npx servicemap install-skill
+  npx servicemap install-skill --agent all
+  npx servicemap skills install --agent claude
   servicemap --mode desktop
 `);
 }
@@ -73,23 +84,50 @@ async function readScan(root) {
   return JSON.parse(await readFile(scanPath, 'utf8'));
 }
 
+function skillRoots(options) {
+  if (options.skillsDir) return [options.skillsDir];
+
+  const roots = {
+    codex: resolve(homedir(), '.agents/skills'),
+    agents: resolve(homedir(), '.agents/skills'),
+    claude: resolve(homedir(), '.claude/skills'),
+    grok: resolve(homedir(), '.grok/skills'),
+  };
+
+  if (options.agent === 'all') {
+    return [...new Set([roots.codex, roots.claude, roots.grok])];
+  }
+
+  if (!roots[options.agent]) {
+    throw new Error(`Unknown agent "${options.agent}". Use codex, claude, grok, agents, or all.`);
+  }
+
+  return [roots[options.agent]];
+}
+
 async function installSkill(options) {
   const source = resolve(packageRoot, 'servicemap');
-  const destination = join(options.skillsDir, 'servicemap');
+  const roots = skillRoots(options);
 
   if (!existsSync(source)) {
     throw new Error(`Bundled skill folder not found: ${source}`);
   }
 
   if (options.dryRun) {
-    console.log(`Would install Servicemap skill to ${destination}`);
+    for (const root of roots) {
+      console.log(`Would install Servicemap skill to ${join(root, 'servicemap')}`);
+    }
     return;
   }
 
-  await mkdir(options.skillsDir, { recursive: true });
-  await rm(destination, { recursive: true, force: true });
-  await cp(source, destination, { recursive: true });
-  console.log(`Installed Servicemap skill to ${destination}`);
+  for (const root of roots) {
+    const destination = join(root, 'servicemap');
+    await mkdir(root, { recursive: true });
+    await rm(destination, { recursive: true, force: true });
+    await cp(source, destination, { recursive: true });
+    console.log(`Installed Servicemap skill to ${destination}`);
+  }
+
   console.log('Restart your AI app if /servicemap does not appear immediately.');
 }
 
@@ -100,13 +138,13 @@ async function main() {
     return;
   }
 
-  if (options.command === 'install-skill') {
+  if (options.command === 'install-skill' || options.command === 'install') {
     await installSkill(options);
     return;
   }
 
   if (options.command !== 'generate') {
-    throw new Error(`Unknown command "${options.command}". Use generate or install-skill.`);
+    throw new Error(`Unknown command "${options.command}". Use generate, install-skill, or skills install.`);
   }
 
   if (!['auto', 'page', 'desktop'].includes(options.mode)) {
