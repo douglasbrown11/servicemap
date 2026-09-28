@@ -61,6 +61,8 @@ CLI options:
 servicemap
 servicemap generate --root <project-path>
 servicemap --root <project-path>
+servicemap generate --root <project-path> --allow-emails founder@example.com,ops@example.com
+servicemap generate --root <project-path> --allow-email founder@example.com --allow-email ops@example.com
 servicemap --mode page
 servicemap --mode desktop
 servicemap --dry-run
@@ -86,7 +88,7 @@ servicemap skills install --agent codex
 ## Validation
 
 ```bash
-node bin/servicemap.mjs generate --root demo-project --dry-run
+node bin/servicemap.mjs generate --root demo-project --allow-emails founder@example.com,ops@example.com --dry-run
 node bin/servicemap.mjs --root no-website-demo --dry-run
 node bin/servicemap.mjs --dry-run
 node bin/servicemap.mjs install-skill --agent all --dry-run

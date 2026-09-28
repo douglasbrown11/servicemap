@@ -1,6 +1,6 @@
 {
   "name": "servicemap",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Generate an internal service map page or desktop app for a software project.",
   "type": "module",
   "bin": {
@@ -12,7 +12,7 @@
     "README.md"
   ],
   "scripts": {
-    "test": "node bin/servicemap.mjs generate --root demo-project --dry-run && node bin/servicemap.mjs --root no-website-demo --dry-run && node bin/servicemap.mjs --dry-run && HOME=\"$(mktemp -d)\" node bin/servicemap.mjs && node bin/servicemap.mjs install-skill --agent all --dry-run && node bin/servicemap.mjs install-skill --targets codex,chatgpt,cursor --dry-run && node bin/servicemap.mjs skills install --agent claude --dry-run",
+    "test": "node bin/servicemap.mjs generate --root demo-project --allow-emails founder@example.com,ops@example.com --dry-run && node bin/servicemap.mjs --root no-website-demo --dry-run && node bin/servicemap.mjs --dry-run && HOME=\"$(mktemp -d)\" node bin/servicemap.mjs && node bin/servicemap.mjs install-skill --agent all --dry-run && node bin/servicemap.mjs install-skill --targets codex,chatgpt,cursor --dry-run && node bin/servicemap.mjs skills install --agent claude --dry-run",
     "validate:skill": "python3 /Users/dougie/.codex/skills/.system/skill-creator/scripts/quick_validate.py servicemap"
   },
   "keywords": [

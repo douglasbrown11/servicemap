@@ -70,6 +70,7 @@ function pageCss() {
     .service-name span, .evidence { color: #64748b; font-size: 12px; }
     .badge { display: inline-flex; align-items: center; height: 22px; padding: 0 8px; border-radius: 999px; background: #edf2ff; color: #334155; font-size: 12px; margin-bottom: 10px; }
     .evidence { margin-top: 8px; }
+    .access-warning { margin: 0 0 18px; padding: 12px 14px; border: 1px solid #f5c542; border-radius: 8px; background: #fff7d6; color: #614700; font-size: 14px; line-height: 1.45; }
     .empty { background: #fff; border: 1px dashed #cbd5e1; border-radius: 8px; padding: 24px; }
     @media (max-width: 720px) { .servicemap-header { display: block; } .summary { grid-template-columns: 1fr; } }
   `;
@@ -77,6 +78,11 @@ function pageCss() {
 
 function htmlBody(graph) {
   const services = graph.services ?? [];
+  const access = graph.access ?? {};
+  const hasAccessRequest = access.requested && access.allowedEmails?.length;
+  const accessNotice = hasAccessRequest && access.enforced !== true
+    ? '<div class="access-warning">Email access was requested, but this project does not expose a supported server-side auth guard for generated pages. Put this route behind your app auth before sharing it.</div>'
+    : '';
   const serviceCards = services.length
     ? services.map((service) => {
       const evidence = service.evidence?.[0];
@@ -111,6 +117,7 @@ function htmlBody(graph) {
         <div class="metric"><strong>${graph.summary?.highConfidenceCount ?? 0}</strong><span>high confidence</span></div>
         <div class="metric"><strong>${escapeHtml(graph.project?.framework ?? 'unknown')}</strong><span>framework</span></div>
       </section>
+      ${accessNotice}
       <section class="service-grid">
         ${serviceCards}
       </section>
@@ -136,6 +143,36 @@ ${htmlBody(graph)}
 
 function tsxPage(graph) {
   const html = htmlBody(graph);
+  const allowedEmails = graph.access?.allowedEmails ?? [];
+  const usesClerk = (graph.services ?? []).some((service) => service.key === 'clerk');
+  const canEnforce = allowedEmails.length > 0 && usesClerk && graph.project?.framework === 'next-app-router';
+  if (canEnforce) {
+    graph.access.enforced = true;
+    const guardedHtml = htmlBody(graph);
+    return `import { currentUser } from '@clerk/nextjs/server';
+import { notFound } from 'next/navigation';
+
+const css = ${JSON.stringify(pageCss())};
+const html = ${JSON.stringify(guardedHtml)};
+const allowedEmails = ${JSON.stringify(allowedEmails)};
+
+export default async function InternalServiceMapPage() {
+  const user = await currentUser();
+  const userEmails = user?.emailAddresses?.map((email) => email.emailAddress.toLowerCase()) ?? [];
+  const canView = userEmails.some((email) => allowedEmails.includes(email));
+
+  if (!canView) notFound();
+
+  return (
+    <>
+      <style dangerouslySetInnerHTML={{ __html: css }} />
+      <div dangerouslySetInnerHTML={{ __html: html }} />
+    </>
+  );
+}
+`;
+  }
+
   return `const css = ${JSON.stringify(pageCss())};
 const html = ${JSON.stringify(html)};
 

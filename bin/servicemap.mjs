@@ -75,6 +75,7 @@ function parseArgs() {
     agent: 'codex',
     targets: null,
     skillsDir: null,
+    allowedEmails: [],
     invokedWithoutArgs: args.length === 0,
     explicitCommand: false,
     generationRequested: false,
@@ -102,6 +103,14 @@ function parseArgs() {
     }
     if (arg === '--agent') options.agent = args[++index] ?? options.agent;
     if (arg === '--targets') options.targets = (args[++index] ?? '').split(',').map((target) => target.trim()).filter(Boolean);
+    if (arg === '--allow-email') {
+      options.allowedEmails.push(args[++index] ?? '');
+      options.generationRequested = true;
+    }
+    if (arg === '--allow-emails') {
+      options.allowedEmails.push(...(args[++index] ?? '').split(','));
+      options.generationRequested = true;
+    }
     if (arg === '--skills-dir') options.skillsDir = resolve(args[++index] ?? '.');
     if (arg === '--user') options.user = true;
     if (arg === '--survey') options.survey = true;
@@ -119,14 +128,14 @@ function help() {
 
 Usage:
   servicemap
-  servicemap generate [--root <project>] [--mode auto|page|desktop] [--dry-run]
-  servicemap --root <project> [--mode auto|page|desktop] [--dry-run]
+  servicemap generate [--root <project>] [--mode auto|page|desktop] [--allow-emails <list>] [--dry-run]
+  servicemap --root <project> [--mode auto|page|desktop] [--allow-emails <list>] [--dry-run]
   servicemap install-skill [--survey] [--agent codex|claude|grok|all] [--targets <ids>]
   servicemap skills install [--survey] [--agent codex|claude|grok|all]
 
 Examples:
   npx servicemap
-  npx servicemap generate --root ../my-app
+  npx servicemap generate --root ../my-app --allow-emails founder@example.com,ops@example.com
   npx servicemap -- --root ../my-app
   npx servicemap install-skill
   npx servicemap install-skill --survey
@@ -336,7 +345,11 @@ async function main() {
     throw new Error(`Unknown mode "${options.mode}". Use auto, page, or desktop.`);
   }
 
-  await run(process.execPath, [scanScript, '--root', options.root]);
+  const scanArgs = [scanScript, '--root', options.root];
+  for (const email of options.allowedEmails) {
+    scanArgs.push('--allow-email', email);
+  }
+  await run(process.execPath, scanArgs);
   const scan = await readScan(options.root);
   const selectedMode = options.mode === 'auto'
     ? scan.project?.framework === 'static' ? 'desktop' : 'page'

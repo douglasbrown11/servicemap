@@ -65,14 +65,24 @@ function service(name, key, category, packages, envPrefixes, domains) {
 
 function parseArgs() {
   const args = process.argv.slice(2);
-  const options = { root: process.cwd(), output: defaultOutput };
+  const options = { root: process.cwd(), output: defaultOutput, allowedEmails: [] };
   for (let index = 0; index < args.length; index += 1) {
     if (args[index] === '--root') options.root = args[index + 1] ?? options.root;
     if (args[index] === '--output') options.output = args[index + 1] ?? options.output;
+    if (args[index] === '--allow-email') options.allowedEmails.push(args[index + 1] ?? '');
+    if (args[index] === '--allow-emails') options.allowedEmails.push(...(args[index + 1] ?? '').split(','));
   }
   options.root = resolve(options.root);
   options.output = resolve(options.root, options.output);
+  options.allowedEmails = normalizeEmails(options.allowedEmails);
   return options;
+}
+
+function normalizeEmails(values) {
+  return [...new Set(values
+    .map((value) => value.trim().toLowerCase())
+    .filter(Boolean)
+    .filter((value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)))];
 }
 
 async function readJson(path) {
@@ -267,6 +277,10 @@ async function main() {
       name: projectName,
       root: options.root,
       framework: detectFramework(options.root, packageJson, files),
+    },
+    access: {
+      allowedEmails: options.allowedEmails,
+      requested: options.allowedEmails.length > 0,
     },
     services,
     edges: buildEdges(projectName, services),
