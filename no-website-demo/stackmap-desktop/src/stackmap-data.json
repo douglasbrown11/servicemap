@@ -1,8 +1,8 @@
 {
-  "generatedAt": "2026-09-28T16:50:51.651Z",
+  "generatedAt": "2026-09-28T17:02:54.488Z",
   "project": {
     "name": "no-website-demo",
-    "root": "/Users/dougie/Desktop/service-map-skill/no-website-demo",
+    "root": "/Users/dougie/Desktop/stackmap/no-website-demo",
     "framework": "static"
   },
   "services": [
@@ -26,6 +26,21 @@
       "confidence": "high"
     },
     {
+      "id": "react",
+      "name": "React",
+      "key": "react",
+      "category": "developer-tools",
+      "evidence": [
+        {
+          "type": "package",
+          "value": "react",
+          "confidence": "high"
+        }
+      ],
+      "confidence": "high",
+      "iconUrl": "https://cdn.jsdelivr.net/npm/simple-icons@16/icons/react.svg"
+    },
+    {
       "id": "stripe",
       "name": "Stripe",
       "key": "stripe",
@@ -44,6 +59,21 @@
       ],
       "confidence": "high",
       "iconUrl": "https://cdn.jsdelivr.net/npm/simple-icons@16/icons/stripe.svg"
+    },
+    {
+      "id": "vite",
+      "name": "Vite",
+      "key": "vite",
+      "category": "developer-tools",
+      "evidence": [
+        {
+          "type": "package",
+          "value": "vite",
+          "confidence": "high"
+        }
+      ],
+      "confidence": "high",
+      "iconUrl": "https://cdn.jsdelivr.net/npm/simple-icons@16/icons/vite.svg"
     }
   ],
   "edges": [
@@ -54,13 +84,23 @@
     },
     {
       "source": "project",
+      "target": "react",
+      "label": "uses"
+    },
+    {
+      "source": "project",
       "target": "stripe",
+      "label": "uses"
+    },
+    {
+      "source": "project",
+      "target": "vite",
       "label": "uses"
     }
   ],
   "summary": {
-    "serviceCount": 2,
-    "highConfidenceCount": 2,
-    "scannedFileCount": 3
+    "serviceCount": 4,
+    "highConfidenceCount": 4,
+    "scannedFileCount": 16
   }
 }

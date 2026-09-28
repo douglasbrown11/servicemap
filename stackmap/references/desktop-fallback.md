@@ -11,7 +11,7 @@ scripts/generate-desktop-app.mjs --root <project-root>
 The generated app is written to:
 
 ```text
-internal-service-map-desktop
+stackmap-desktop
 ```
 
 It is a Vite React app with Tauri configuration.

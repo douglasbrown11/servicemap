@@ -1,3 +1,0 @@
-display_name: Service Map
-short_description: Generate an /internalservicemap page from a project's detected services.
-default_prompt: Create an internal service map page for this project.

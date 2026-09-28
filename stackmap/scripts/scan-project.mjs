@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 const skillRoot = resolve(scriptDir, '..');
 const logoDatabasePath = resolve(skillRoot, 'assets/service-logo-database.json');
-const defaultOutput = '.service-map/internal-service-map.json';
+const defaultOutput = '.stackmap/internal-stackmap.json';
 
 const ignoredDirs = new Set([
   '.git',

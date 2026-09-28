@@ -3,7 +3,7 @@ import { existsSync } from 'node:fs';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 
-const defaultInput = '.service-map/internal-service-map.json';
+const defaultInput = '.stackmap/internal-stackmap.json';
 
 function parseArgs() {
   const args = process.argv.slice(2);
@@ -51,8 +51,8 @@ function pageCss() {
   return `
     :root { color-scheme: light; font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
     body { margin: 0; background: #f7f8fb; color: #172033; }
-    .service-map-shell { max-width: 1180px; margin: 0 auto; padding: 40px 24px 56px; }
-    .service-map-header { display: flex; justify-content: space-between; gap: 24px; align-items: flex-end; margin-bottom: 24px; }
+    .stackmap-shell { max-width: 1180px; margin: 0 auto; padding: 40px 24px 56px; }
+    .stackmap-header { display: flex; justify-content: space-between; gap: 24px; align-items: flex-end; margin-bottom: 24px; }
     h1 { margin: 0 0 8px; font-size: clamp(30px, 4vw, 48px); line-height: 1; letter-spacing: 0; }
     p { margin: 0; color: #5f6b7c; line-height: 1.55; }
     .summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 22px 0; }
@@ -71,7 +71,7 @@ function pageCss() {
     .badge { display: inline-flex; align-items: center; height: 22px; padding: 0 8px; border-radius: 999px; background: #edf2ff; color: #334155; font-size: 12px; margin-bottom: 10px; }
     .evidence { margin-top: 8px; }
     .empty { background: #fff; border: 1px dashed #cbd5e1; border-radius: 8px; padding: 24px; }
-    @media (max-width: 720px) { .service-map-header { display: block; } .summary { grid-template-columns: 1fr; } }
+    @media (max-width: 720px) { .stackmap-header { display: block; } .summary { grid-template-columns: 1fr; } }
   `;
 }
 
@@ -98,10 +98,10 @@ function htmlBody(graph) {
     : '<div class="empty">No external services were detected yet.</div>';
 
   return `
-    <main class="service-map-shell">
-      <section class="service-map-header">
+    <main class="stackmap-shell">
+      <section class="stackmap-header">
         <div>
-          <h1>Internal Service Map</h1>
+          <h1>Internal Stackmap</h1>
           <p>${escapeHtml(graph.project?.name ?? 'This project')} uses these detected services.</p>
         </div>
         <p>Generated ${escapeHtml(new Date(graph.generatedAt).toLocaleString())}</p>
@@ -124,7 +124,7 @@ function staticHtml(graph) {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Internal Service Map</title>
+  <title>Internal Stackmap</title>
   <style>${pageCss()}</style>
 </head>
 <body>
@@ -159,7 +159,7 @@ const html = ${JSON.stringify(htmlBody(graph))};
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Internal Service Map</title>
+    <title>Internal Stackmap</title>
     <style set:html={css}></style>
   </head>
   <body set:html={html}></body>

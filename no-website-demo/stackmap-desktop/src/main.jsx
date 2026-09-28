@@ -1,6 +1,6 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
-import graph from './service-map-data.json';
+import graph from './stackmap-data.json';
 import './styles.css';
 
 function strongestEvidence(service) {
@@ -16,7 +16,7 @@ function App() {
     <main className="shell">
       <header className="topbar">
         <div>
-          <h1>Internal Service Map</h1>
+          <h1>Internal Stackmap</h1>
           <p>{graph.project?.name ?? 'This project'} uses these detected services.</p>
         </div>
         <span className="stamp">{new Date(graph.generatedAt).toLocaleString()}</span>
