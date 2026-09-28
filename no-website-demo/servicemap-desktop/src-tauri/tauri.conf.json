@@ -1,5 +1,5 @@
 {
-  "productName": "Internal Stackmap",
+  "productName": "Internal Servicemap",
   "version": "0.1.0",
   "identifier": "com.internal.nowebsitedemo",
   "build": {
@@ -11,7 +11,7 @@
   "app": {
     "windows": [
       {
-        "title": "Internal Stackmap",
+        "title": "Internal Servicemap",
         "width": 1180,
         "height": 820,
         "minWidth": 860,

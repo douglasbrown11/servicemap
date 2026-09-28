@@ -3,13 +3,13 @@ dist/
 .DS_Store
 
 # Demo outputs
-demo-project/.stackmap/
+demo-project/.servicemap/
 demo-project/app/internalservicemap/
-no-website-demo/.stackmap/
-no-website-demo/stackmap-desktop/node_modules/
-no-website-demo/stackmap-desktop/dist/
-no-website-demo/stackmap-desktop/src-tauri/target/
+no-website-demo/.servicemap/
+no-website-demo/servicemap-desktop/node_modules/
+no-website-demo/servicemap-desktop/dist/
+no-website-demo/servicemap-desktop/src-tauri/target/
 
 # Rebuildable archive
-stackmap.zip
+servicemap.zip
 *.tgz

@@ -2,8 +2,8 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 
-const defaultInput = '.stackmap/internal-stackmap.json';
-const defaultOutput = 'stackmap-desktop';
+const defaultInput = '.servicemap/internal-servicemap.json';
+const defaultOutput = 'servicemap-desktop';
 
 function parseArgs() {
   const args = process.argv.slice(2);
@@ -30,7 +30,7 @@ async function writeProjectFile(root, path, contents) {
 }
 
 function packageJson(graph) {
-  const appName = `${graph.project?.name ?? 'internal'}-stackmap`.replace(/[^a-z0-9-]+/gi, '-').toLowerCase();
+  const appName = `${graph.project?.name ?? 'internal'}-servicemap`.replace(/[^a-z0-9-]+/gi, '-').toLowerCase();
   return `${JSON.stringify({
     name: appName,
     private: true,
@@ -76,7 +76,7 @@ function indexHtml() {
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Internal Stackmap</title>
+    <title>Internal Servicemap</title>
   </head>
   <body>
     <div id="root"></div>
@@ -89,7 +89,7 @@ function indexHtml() {
 function mainJsx() {
   return `import React from 'react';
 import { createRoot } from 'react-dom/client';
-import graph from './stackmap-data.json';
+import graph from '.servicemap-data.json';
 import './styles.css';
 
 function strongestEvidence(service) {
@@ -105,7 +105,7 @@ function App() {
     <main className="shell">
       <header className="topbar">
         <div>
-          <h1>Internal Stackmap</h1>
+          <h1>Internal Servicemap</h1>
           <p>{graph.project?.name ?? 'This project'} uses these detected services.</p>
         </div>
         <span className="stamp">{new Date(graph.generatedAt).toLocaleString()}</span>
@@ -314,7 +314,7 @@ p {
 
 function tauriConfig(graph) {
   return `${JSON.stringify({
-    productName: 'Internal Stackmap',
+    productName: 'Internal Servicemap',
     version: '0.1.0',
     identifier: `com.internal.${(graph.project?.name ?? 'servicemap').replace(/[^a-z0-9]+/gi, '').toLowerCase() || 'servicemap'}`,
     build: {
@@ -326,7 +326,7 @@ function tauriConfig(graph) {
     app: {
       windows: [
         {
-          title: 'Internal Stackmap',
+          title: 'Internal Servicemap',
           width: 1180,
           height: 820,
           minWidth: 860,
@@ -343,9 +343,9 @@ function tauriConfig(graph) {
 
 function cargoToml() {
   return `[package]
-name = "internal-stackmap"
+name = "internal-servicemap"
 version = "0.1.0"
-description = "Internal Stackmap"
+description = "Internal Servicemap"
 authors = ["Internal"]
 edition = "2021"
 
@@ -395,14 +395,14 @@ async function main() {
   await writeProjectFile(options.output, 'vite.config.js', viteConfig());
   await writeProjectFile(options.output, 'src/main.jsx', mainJsx());
   await writeProjectFile(options.output, 'src/styles.css', stylesCss());
-  await writeProjectFile(options.output, 'src/stackmap-data.json', `${JSON.stringify(graph, null, 2)}\n`);
+  await writeProjectFile(options.output, 'srcservicemap-data.json', `${JSON.stringify(graph, null, 2)}\n`);
   await writeProjectFile(options.output, 'src-tauri/tauri.conf.json', tauriConfig(graph));
   await writeProjectFile(options.output, 'src-tauri/Cargo.toml', cargoToml());
   await writeProjectFile(options.output, 'src-tauri/build.rs', buildRs());
   await writeProjectFile(options.output, 'src-tauri/src/lib.rs', rustLib());
   await writeProjectFile(options.output, 'src-tauri/src/main.rs', rustMain());
 
-  console.log(`Wrote desktop stackmap app to ${options.output}`);
+  console.log(`Wrote desktop servicemap app to ${options.output}`);
 }
 
 main().catch((error) => {

@@ -1,7 +1,7 @@
 [package]
-name = "internal-stackmap"
+name = "internal-servicemap"
 version = "0.1.0"
-description = "Internal Stackmap"
+description = "Internal Servicemap"
 authors = ["Internal"]
 edition = "2021"
 

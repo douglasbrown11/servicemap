@@ -1,23 +1,23 @@
 ---
-name: stackmap
+name: servicemap
 description: Create an /internalservicemap page or desktop app for a software project by scanning its codebase for external services, resolving logos, and attaching the map to the existing website when one is present.
 metadata:
-  short-description: Generate an internal stackmap page
+  short-description: Generate an internal servicemap page
 ---
 
-# Stackmap
+# Servicemap
 
-Use this skill when a user invokes `/stackmap` or asks to create an internal stackmap for a software project.
+Use this skill when a user invokes `servicemap` or asks to create an internal servicemap for a software project.
 The outcome is a working `/internalservicemap` page attached to the existing website when possible.
-If no website can be found, create a desktop app fallback at `stackmap-desktop`.
+If no website can be found, create a desktop app fallback at `servicemap-desktop`.
 
 ## Workflow
 
 1. Inspect the project layout and current web framework.
-2. Run `scripts/scan-project.mjs --root <project-root>` to create `.stackmap/internal-stackmap.json`.
+2. Run `scripts/scan-project.mjs --root <project-root>` to create `.servicemap/internal-servicemap.json`.
 3. Review the scan output for obvious false positives or missing high-confidence services.
 4. If the scan detects a web framework or routeable website, run `scripts/generate-page.mjs --root <project-root>` to create the framework-specific `/internalservicemap` route.
-5. If the scan reports `framework: static` or no website route can be safely attached, run `scripts/generate-desktop-app.mjs --root <project-root>` to create `stackmap-desktop`.
+5. If the scan reports `framework: static` or no website route can be safely attached, run `scripts/generate-desktop-app.mjs --root <project-root>` to create `servicemap-desktop`.
 6. Adapt the generated surface to the project's existing design system only when the route is clear and the edits are low-risk.
 7. Run the project's relevant build, lint, and focused tests.
 8. Report the page or desktop app path, service count, validation run, and any services marked low or medium confidence.

@@ -1,34 +1,34 @@
 {
-  "name": "@douglasbrown11/stackmap",
+  "name": "servicemap",
   "version": "0.1.0",
-  "description": "Generate an internal stack map page or desktop app for a software project.",
+  "description": "Generate an internal service map page or desktop app for a software project.",
   "type": "module",
   "bin": {
-    "stackmap": "./bin/stackmap.mjs"
+    "servicemap": "./bin/servicemap.mjs"
   },
   "files": [
     "bin",
-    "stackmap",
+    "servicemap",
     "README.md"
   ],
   "scripts": {
-    "test": "node bin/stackmap.mjs --root demo-project --dry-run && node bin/stackmap.mjs --root no-website-demo --dry-run",
-    "validate:skill": "python3 /Users/dougie/.codex/skills/.system/skill-creator/scripts/quick_validate.py stackmap"
+    "test": "node bin/servicemap.mjs --root demo-project --dry-run && node bin/servicemap.mjs --root no-website-demo --dry-run",
+    "validate:skill": "python3 /Users/dougie/.codex/skills/.system/skill-creator/scripts/quick_validate.py servicemap"
   },
   "keywords": [
     "ai-skill",
     "service-map",
-    "stackmap",
+    "servicemap",
     "developer-tools",
     "internal-tools"
   ],
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/douglasbrown11/stackmap.git"
+    "url": "git+https://github.com/douglasbrown11/servicemap.git"
   },
   "bugs": {
-    "url": "https://github.com/douglasbrown11/stackmap/issues"
+    "url": "https://github.com/douglasbrown11/servicemap/issues"
   },
-  "homepage": "https://github.com/douglasbrown11/stackmap#readme"
+  "homepage": "https://github.com/douglasbrown11/servicemap#readme"
 }

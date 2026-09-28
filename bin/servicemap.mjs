@@ -5,9 +5,9 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const scanScript = resolve(packageRoot, 'stackmap/scripts/scan-project.mjs');
-const pageScript = resolve(packageRoot, 'stackmap/scripts/generate-page.mjs');
-const desktopScript = resolve(packageRoot, 'stackmap/scripts/generate-desktop-app.mjs');
+const scanScript = resolve(packageRoot, 'servicemap/scripts/scan-project.mjs');
+const pageScript = resolve(packageRoot, 'servicemap/scripts/generate-page.mjs');
+const desktopScript = resolve(packageRoot, 'servicemap/scripts/generate-desktop-app.mjs');
 
 function parseArgs() {
   const args = process.argv.slice(2);
@@ -30,15 +30,15 @@ function parseArgs() {
 }
 
 function help() {
-  console.log(`Stackmap
+  console.log(`Servicemap
 
 Usage:
-  stackmap [--root <project>] [--mode auto|page|desktop] [--dry-run]
+  servicemap [--root <project>] [--mode auto|page|desktop] [--dry-run]
 
 Examples:
-  npx @douglasbrown11/stackmap
-  npx @douglasbrown11/stackmap -- --root ../my-app
-  stackmap --mode desktop
+  npx servicemap
+  npx servicemap -- --root ../my-app
+  servicemap --mode desktop
 `);
 }
 
@@ -58,7 +58,7 @@ function run(command, args, options = {}) {
 }
 
 async function readScan(root) {
-  const scanPath = resolve(root, '.stackmap/internal-stackmap.json');
+  const scanPath = resolve(root, '.servicemap/internal-servicemap.json');
   return JSON.parse(await readFile(scanPath, 'utf8'));
 }
 
@@ -79,7 +79,7 @@ async function main() {
     ? scan.project?.framework === 'static' ? 'desktop' : 'page'
     : options.mode;
 
-  console.log(`Stackmap detected ${scan.summary?.serviceCount ?? 0} services.`);
+  console.log(`Servicemap detected ${scan.summary?.serviceCount ?? 0} services.`);
   console.log(`Framework: ${scan.project?.framework ?? 'unknown'}`);
   console.log(`Mode: ${selectedMode}`);
 

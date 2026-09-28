@@ -1,0 +1,3 @@
+display_name: Servicemap
+short_description: Generate an /internalservicemap page from a project's detected services.
+default_prompt: Create an internal servicemap page for this project.
