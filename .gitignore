@@ -1,0 +1,14 @@
+node_modules/
+dist/
+.DS_Store
+
+# Demo outputs
+demo-project/.service-map/
+demo-project/app/internalservicemap/
+no-website-demo/.service-map/
+no-website-demo/internal-service-map-desktop/node_modules/
+no-website-demo/internal-service-map-desktop/dist/
+no-website-demo/internal-service-map-desktop/src-tauri/target/
+
+# Rebuildable archive
+service-map-skill.zip

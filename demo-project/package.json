@@ -1,0 +1,12 @@
+{
+  "name": "demo-project",
+  "type": "module",
+  "dependencies": {
+    "@clerk/nextjs": "^6.0.0",
+    "@sentry/nextjs": "^8.0.0",
+    "@supabase/supabase-js": "^2.0.0",
+    "next": "^15.0.0",
+    "posthog-js": "^1.0.0",
+    "stripe": "^17.0.0"
+  }
+}

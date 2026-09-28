@@ -1,0 +1,66 @@
+{
+  "generatedAt": "2026-09-28T16:50:51.651Z",
+  "project": {
+    "name": "no-website-demo",
+    "root": "/Users/dougie/Desktop/service-map-skill/no-website-demo",
+    "framework": "static"
+  },
+  "services": [
+    {
+      "id": "openai",
+      "name": "OpenAI",
+      "key": "openai",
+      "category": "ai",
+      "evidence": [
+        {
+          "type": "package",
+          "value": "openai",
+          "confidence": "high"
+        },
+        {
+          "type": "environment-variable-name",
+          "value": "OPENAI_API_KEY",
+          "confidence": "medium"
+        }
+      ],
+      "confidence": "high"
+    },
+    {
+      "id": "stripe",
+      "name": "Stripe",
+      "key": "stripe",
+      "category": "billing",
+      "evidence": [
+        {
+          "type": "package",
+          "value": "stripe",
+          "confidence": "high"
+        },
+        {
+          "type": "environment-variable-name",
+          "value": "STRIPE_SECRET_KEY",
+          "confidence": "medium"
+        }
+      ],
+      "confidence": "high",
+      "iconUrl": "https://cdn.jsdelivr.net/npm/simple-icons@16/icons/stripe.svg"
+    }
+  ],
+  "edges": [
+    {
+      "source": "project",
+      "target": "openai",
+      "label": "uses"
+    },
+    {
+      "source": "project",
+      "target": "stripe",
+      "label": "uses"
+    }
+  ],
+  "summary": {
+    "serviceCount": 2,
+    "highConfidenceCount": 2,
+    "scannedFileCount": 3
+  }
+}
