@@ -12,3 +12,4 @@ no-website-demo/stackmap-desktop/src-tauri/target/
 
 # Rebuildable archive
 stackmap.zip
+*.tgz
