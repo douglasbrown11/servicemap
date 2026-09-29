@@ -13,9 +13,9 @@ const pageScript = resolve(packageRoot, 'servicemap/scripts/generate-page.mjs');
 const desktopScript = resolve(packageRoot, 'servicemap/scripts/generate-desktop-app.mjs');
 
 const targetCatalog = [
-  { id: 'codex', label: 'OpenAI (Codex, ChatGPT, GPT models)', kind: 'skill', root: () => resolve(homedir(), '.agents/skills'), recommended: true },
-  { id: 'claude', label: 'Anthropic (Claude Code, Claude models)', kind: 'skill', root: () => resolve(homedir(), '.claude/skills'), recommended: true },
-  { id: 'grok', label: 'xAI (Grok)', kind: 'skill', root: () => resolve(homedir(), '.grok/skills'), recommended: true },
+  { id: 'codex', label: 'OpenAI (Codex, ChatGPT, GPT models)', kind: 'skill', root: () => resolve(homedir(), '.agents/skills') },
+  { id: 'claude', label: 'Anthropic (Claude Code, Claude models)', kind: 'skill', root: () => resolve(homedir(), '.claude/skills') },
+  { id: 'grok', label: 'xAI (Grok)', kind: 'skill', root: () => resolve(homedir(), '.grok/skills') },
   { id: 'gemini', label: 'Google (Gemini, Vertex AI)', kind: 'guide' },
   { id: 'cursor', label: 'Cursor', kind: 'guide' },
   { id: 'windsurf', label: 'Windsurf', kind: 'guide' },
@@ -211,17 +211,16 @@ function renderSurvey(selected, cursor) {
   targetCatalog.forEach((target, index) => {
     const pointer = index === cursor ? '>' : ' ';
     const checked = selected.has(target.id) ? 'x' : ' ';
-    const detail = target.kind === 'skill' ? 'skill folder' : 'setup notes';
-    console.log(`${pointer} [${checked}] ${target.label} (${detail})`);
+    console.log(`${pointer} [${checked}] ${target.label}`);
   });
 }
 
 function runTargetSurvey() {
   if (!process.stdin.isTTY || !process.stdout.isTTY) {
-    return Promise.resolve(targetCatalog.filter((target) => target.recommended));
+    return Promise.resolve([]);
   }
 
-  const selected = new Set(targetCatalog.filter((target) => target.recommended).map((target) => target.id));
+  const selected = new Set();
   let cursor = 0;
 
   return new Promise((resolvePromise) => {
@@ -303,9 +302,15 @@ async function installSkill(options) {
     ? await runTargetSurvey()
     : targetsForOptions(options);
   const roots = skillRootsForTargets(options, selectedTargets);
+  const notes = guideTargets(selectedTargets);
 
   if (!existsSync(source)) {
     throw new Error(`Bundled skill folder not found: ${source}`);
+  }
+
+  if (roots.length === 0 && notes.length === 0) {
+    console.log('No targets selected. Nothing was installed.');
+    return;
   }
 
   if (options.dryRun) {
@@ -326,7 +331,9 @@ async function installSkill(options) {
 
   await writeGuidePacks(selectedTargets, options);
 
-  console.log('Restart your AI app if /servicemap does not appear immediately.');
+  if (roots.length > 0) {
+    console.log('Restart your AI app if /servicemap does not appear immediately.');
+  }
 }
 
 async function main() {
