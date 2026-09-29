@@ -13,21 +13,10 @@ const pageScript = resolve(packageRoot, 'servicemap/scripts/generate-page.mjs');
 const desktopScript = resolve(packageRoot, 'servicemap/scripts/generate-desktop-app.mjs');
 
 const targetCatalog = [
-  { id: 'codex', label: 'Codex / ChatGPT desktop', kind: 'skill', root: () => resolve(homedir(), '.agents/skills'), recommended: true },
-  { id: 'claude', label: 'Claude Code', kind: 'skill', root: () => resolve(homedir(), '.claude/skills'), recommended: true },
-  { id: 'grok', label: 'Grok', kind: 'skill', root: () => resolve(homedir(), '.grok/skills'), recommended: true },
-  { id: 'chatgpt', label: 'ChatGPT', kind: 'guide' },
-  { id: 'gpt-6-astra', label: 'GPT-6 Astra', kind: 'guide' },
-  { id: 'gpt-6-sol', label: 'GPT-6 Sol', kind: 'guide' },
-  { id: 'gpt-6-luna', label: 'GPT-6 Luna', kind: 'guide' },
-  { id: 'gpt-5.6-sol', label: 'GPT-5.6 Sol', kind: 'guide' },
-  { id: 'gpt-5.6-terra', label: 'GPT-5.6 Terra', kind: 'guide' },
-  { id: 'gpt-5.6-luna', label: 'GPT-5.6 Luna', kind: 'guide' },
-  { id: 'claude-opus', label: 'Claude Opus', kind: 'guide' },
-  { id: 'claude-sonnet', label: 'Claude Sonnet', kind: 'guide' },
-  { id: 'claude-haiku', label: 'Claude Haiku', kind: 'guide' },
-  { id: 'gemini-pro', label: 'Gemini Pro', kind: 'guide' },
-  { id: 'gemini-flash', label: 'Gemini Flash', kind: 'guide' },
+  { id: 'codex', label: 'OpenAI (Codex, ChatGPT, GPT models)', kind: 'skill', root: () => resolve(homedir(), '.agents/skills'), recommended: true },
+  { id: 'claude', label: 'Anthropic (Claude Code, Claude models)', kind: 'skill', root: () => resolve(homedir(), '.claude/skills'), recommended: true },
+  { id: 'grok', label: 'xAI (Grok)', kind: 'skill', root: () => resolve(homedir(), '.grok/skills'), recommended: true },
+  { id: 'gemini', label: 'Google (Gemini, Vertex AI)', kind: 'guide' },
   { id: 'cursor', label: 'Cursor', kind: 'guide' },
   { id: 'windsurf', label: 'Windsurf', kind: 'guide' },
   { id: 'copilot', label: 'GitHub Copilot', kind: 'guide' },
@@ -42,19 +31,14 @@ const targetCatalog = [
   { id: 'bolt', label: 'Bolt', kind: 'guide' },
   { id: 'v0', label: 'v0', kind: 'guide' },
   { id: 'perplexity', label: 'Perplexity', kind: 'guide' },
-  { id: 'mistral', label: 'Mistral Le Chat', kind: 'guide' },
+  { id: 'mistral', label: 'Mistral', kind: 'guide' },
   { id: 'deepseek', label: 'DeepSeek', kind: 'guide' },
   { id: 'qwen', label: 'Qwen', kind: 'guide' },
-  { id: 'llama', label: 'Llama', kind: 'guide' },
-  { id: 'ollama', label: 'Ollama', kind: 'guide' },
-  { id: 'lm-studio', label: 'LM Studio', kind: 'guide' },
+  { id: 'meta', label: 'Meta (Llama)', kind: 'guide' },
+  { id: 'local-models', label: 'Local models (Ollama, LM Studio)', kind: 'guide' },
   { id: 'openrouter', label: 'OpenRouter', kind: 'guide' },
-  { id: 'anthropic-api', label: 'Anthropic API apps', kind: 'guide' },
-  { id: 'openai-api', label: 'OpenAI API apps', kind: 'guide' },
-  { id: 'gemini-api', label: 'Gemini API apps', kind: 'guide' },
   { id: 'bedrock', label: 'Amazon Bedrock', kind: 'guide' },
   { id: 'azure-openai', label: 'Azure OpenAI', kind: 'guide' },
-  { id: 'vertex-ai', label: 'Vertex AI', kind: 'guide' },
   { id: 'poe', label: 'Poe', kind: 'guide' },
   { id: 'you-com', label: 'You.com', kind: 'guide' },
   { id: 'phind', label: 'Phind', kind: 'guide' },
@@ -64,6 +48,32 @@ const targetCatalog = [
   { id: 'jetbrains-ai', label: 'JetBrains AI', kind: 'guide' },
   { id: 'custom', label: 'Other custom model or agent', kind: 'guide' },
 ];
+
+const targetAliases = new Map([
+  ['agents', 'codex'],
+  ['chatgpt', 'codex'],
+  ['openai', 'codex'],
+  ['openai-api', 'codex'],
+  ['gpt-6-astra', 'codex'],
+  ['gpt-6-sol', 'codex'],
+  ['gpt-6-luna', 'codex'],
+  ['gpt-5.6-sol', 'codex'],
+  ['gpt-5.6-terra', 'codex'],
+  ['gpt-5.6-luna', 'codex'],
+  ['anthropic', 'claude'],
+  ['anthropic-api', 'claude'],
+  ['claude-opus', 'claude'],
+  ['claude-sonnet', 'claude'],
+  ['claude-haiku', 'claude'],
+  ['google', 'gemini'],
+  ['gemini-pro', 'gemini'],
+  ['gemini-flash', 'gemini'],
+  ['gemini-api', 'gemini'],
+  ['vertex-ai', 'gemini'],
+  ['llama', 'meta'],
+  ['ollama', 'local-models'],
+  ['lm-studio', 'local-models'],
+]);
 
 function parseArgs() {
   const args = process.argv.slice(2);
@@ -169,7 +179,7 @@ async function readScan(root) {
 function targetsByIds(ids) {
   const byId = new Map(targetCatalog.map((target) => [target.id, target]));
   return ids.map((id) => {
-    const target = byId.get(id);
+    const target = byId.get(targetAliases.get(id) ?? id);
     if (!target) {
       throw new Error(`Unknown target "${id}". Use --survey to choose from the list.`);
     }
@@ -180,7 +190,6 @@ function targetsByIds(ids) {
 function targetsForOptions(options) {
   if (options.targets?.length) return targetsByIds(options.targets);
   if (options.agent === 'all') return targetCatalog.filter((target) => target.kind === 'skill');
-  if (options.agent === 'agents') return targetsByIds(['codex']);
   return targetsByIds([options.agent]);
 }
 
@@ -202,7 +211,7 @@ function renderSurvey(selected, cursor) {
   targetCatalog.forEach((target, index) => {
     const pointer = index === cursor ? '>' : ' ';
     const checked = selected.has(target.id) ? 'x' : ' ';
-    const detail = target.kind === 'skill' ? 'skill folder' : 'portable guide';
+    const detail = target.kind === 'skill' ? 'skill folder' : 'setup notes';
     console.log(`${pointer} [${checked}] ${target.label} (${detail})`);
   });
 }
@@ -251,7 +260,7 @@ function runTargetSurvey() {
 function guideText(target) {
   return `# Servicemap for ${target.label}
 
-Use this instruction with ${target.label} when you want it to create a service map for a software project.
+These setup notes help ${target.label} use Servicemap when you want it to create a service map for a software project.
 
 Invoke: /servicemap
 

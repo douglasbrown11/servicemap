@@ -41,7 +41,7 @@ npx servicemap skills install --agent claude
 ```
 
 Agents with known local skill folders get the real `servicemap` skill installed.
-Other selected AI tools get a portable guide pack under `~/.servicemap/model-guides`.
+Other selected AI tools get setup notes under `~/.servicemap/model-guides`.
 
 After a global install, the command is:
 
@@ -72,7 +72,7 @@ servicemap install-skill --agent codex
 servicemap install-skill --agent claude
 servicemap install-skill --agent grok
 servicemap install-skill --agent all
-servicemap install-skill --targets codex,chatgpt,cursor
+servicemap install-skill --targets codex,gemini,cursor
 servicemap skills install --agent codex
 ```
 
@@ -92,7 +92,7 @@ node bin/servicemap.mjs generate --root demo-project --allow-emails founder@exam
 node bin/servicemap.mjs --root no-website-demo --dry-run
 node bin/servicemap.mjs --dry-run
 node bin/servicemap.mjs install-skill --agent all --dry-run
-node bin/servicemap.mjs install-skill --targets codex,chatgpt,cursor --dry-run
+node bin/servicemap.mjs install-skill --targets codex,gemini,cursor --dry-run
 node bin/servicemap.mjs skills install --agent claude --dry-run
 python3 /Users/dougie/.codex/skills/.system/skill-creator/scripts/quick_validate.py servicemap
 ```
