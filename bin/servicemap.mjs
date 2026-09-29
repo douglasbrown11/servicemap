@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
-import { cp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { cp, mkdir, readFile, rm } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import { homedir } from 'node:os';
 import readline from 'node:readline';
@@ -12,67 +12,63 @@ const scanScript = resolve(packageRoot, 'servicemap/scripts/scan-project.mjs');
 const pageScript = resolve(packageRoot, 'servicemap/scripts/generate-page.mjs');
 const desktopScript = resolve(packageRoot, 'servicemap/scripts/generate-desktop-app.mjs');
 
+const universalRoot = () => resolve(homedir(), '.agents/skills');
+
+const universalAgents = [
+  'Amp',
+  'Cline',
+  'Codex',
+  'Cursor',
+  'Gemini CLI',
+  'GitHub Copilot',
+  'OpenCode',
+  'Warp',
+  'Zed',
+];
+
 const targetCatalog = [
-  { id: 'codex', label: 'OpenAI (Codex, ChatGPT, GPT models)', kind: 'skill', root: () => resolve(homedir(), '.agents/skills') },
-  { id: 'claude', label: 'Anthropic (Claude Code, Claude models)', kind: 'skill', root: () => resolve(homedir(), '.claude/skills') },
-  { id: 'grok', label: 'xAI (Grok)', kind: 'skill', root: () => resolve(homedir(), '.grok/skills') },
-  { id: 'gemini', label: 'Google (Gemini, Vertex AI)', kind: 'guide' },
-  { id: 'cursor', label: 'Cursor', kind: 'guide' },
-  { id: 'windsurf', label: 'Windsurf', kind: 'guide' },
-  { id: 'copilot', label: 'GitHub Copilot', kind: 'guide' },
-  { id: 'vscode-chat', label: 'VS Code Chat', kind: 'guide' },
-  { id: 'continue', label: 'Continue.dev', kind: 'guide' },
-  { id: 'aider', label: 'Aider', kind: 'guide' },
-  { id: 'cline', label: 'Cline', kind: 'guide' },
-  { id: 'roo-code', label: 'Roo Code', kind: 'guide' },
-  { id: 'zed-ai', label: 'Zed AI', kind: 'guide' },
-  { id: 'replit-agent', label: 'Replit Agent', kind: 'guide' },
-  { id: 'lovable', label: 'Lovable', kind: 'guide' },
-  { id: 'bolt', label: 'Bolt', kind: 'guide' },
-  { id: 'v0', label: 'v0', kind: 'guide' },
-  { id: 'perplexity', label: 'Perplexity', kind: 'guide' },
-  { id: 'mistral', label: 'Mistral', kind: 'guide' },
-  { id: 'deepseek', label: 'DeepSeek', kind: 'guide' },
-  { id: 'qwen', label: 'Qwen', kind: 'guide' },
-  { id: 'meta', label: 'Meta (Llama)', kind: 'guide' },
-  { id: 'local-models', label: 'Local models (Ollama, LM Studio)', kind: 'guide' },
-  { id: 'openrouter', label: 'OpenRouter', kind: 'guide' },
-  { id: 'bedrock', label: 'Amazon Bedrock', kind: 'guide' },
-  { id: 'azure-openai', label: 'Azure OpenAI', kind: 'guide' },
-  { id: 'poe', label: 'Poe', kind: 'guide' },
-  { id: 'you-com', label: 'You.com', kind: 'guide' },
-  { id: 'phind', label: 'Phind', kind: 'guide' },
-  { id: 'sourcegraph-cody', label: 'Sourcegraph Cody', kind: 'guide' },
-  { id: 'tabnine', label: 'Tabnine', kind: 'guide' },
-  { id: 'codeium', label: 'Codeium', kind: 'guide' },
-  { id: 'jetbrains-ai', label: 'JetBrains AI', kind: 'guide' },
-  { id: 'custom', label: 'Other custom model or agent', kind: 'guide' },
+  { id: 'claude', label: 'Claude Code', root: () => resolve(homedir(), '.claude/skills') },
+  { id: 'grok', label: 'Grok', root: () => resolve(homedir(), '.grok/skills') },
+  { id: 'aiderdesk', label: 'AiderDesk', root: () => resolve(homedir(), '.aider-desk/skills') },
+  { id: 'astrbot', label: 'AstrBot', root: () => resolve(homedir(), '.astrbot/data/skills') },
+  { id: 'autohand', label: 'Autohand Code CLI', root: () => resolve(homedir(), '.autohand/skills') },
+  { id: 'augment', label: 'Augment', root: () => resolve(homedir(), '.augment/skills') },
+  { id: 'ibm-bob', label: 'IBM Bob', root: () => resolve(homedir(), '.bob/skills') },
+  { id: 'openclaw', label: 'OpenClaw', root: () => resolve(homedir(), '.openclaw/skills') },
+  { id: 'codearts', label: 'CodeArts Agent', root: () => resolve(homedir(), '.codeartsdoer/skills') },
+  { id: 'roo-code', label: 'Roo Code', root: () => resolve(homedir(), '.roo/skills') },
+  { id: 'continue', label: 'Continue', root: () => resolve(homedir(), '.continue/skills') },
+  { id: 'windsurf', label: 'Windsurf', root: () => resolve(homedir(), '.windsurf/skills') },
+  { id: 'replit-agent', label: 'Replit Agent', root: () => resolve(homedir(), '.replit/skills') },
+  { id: 'jetbrains-ai', label: 'JetBrains AI', root: () => resolve(homedir(), '.jetbrains-ai/skills') },
 ];
 
 const targetAliases = new Map([
-  ['agents', 'codex'],
-  ['chatgpt', 'codex'],
-  ['openai', 'codex'],
-  ['openai-api', 'codex'],
-  ['gpt-6-astra', 'codex'],
-  ['gpt-6-sol', 'codex'],
-  ['gpt-6-luna', 'codex'],
-  ['gpt-5.6-sol', 'codex'],
-  ['gpt-5.6-terra', 'codex'],
-  ['gpt-5.6-luna', 'codex'],
+  ['codex', 'universal'],
+  ['agents', 'universal'],
+  ['universal', 'universal'],
+  ['cursor', 'universal'],
+  ['cline', 'universal'],
+  ['opencode', 'universal'],
+  ['zed', 'universal'],
+  ['github-copilot', 'universal'],
+  ['copilot', 'universal'],
+  ['gemini-cli', 'universal'],
+  ['chatgpt', 'universal'],
+  ['openai', 'universal'],
+  ['openai-api', 'universal'],
+  ['gpt-6-astra', 'universal'],
+  ['gpt-6-sol', 'universal'],
+  ['gpt-6-luna', 'universal'],
+  ['gpt-5.6-sol', 'universal'],
+  ['gpt-5.6-terra', 'universal'],
+  ['gpt-5.6-luna', 'universal'],
   ['anthropic', 'claude'],
   ['anthropic-api', 'claude'],
   ['claude-opus', 'claude'],
   ['claude-sonnet', 'claude'],
   ['claude-haiku', 'claude'],
-  ['google', 'gemini'],
-  ['gemini-pro', 'gemini'],
-  ['gemini-flash', 'gemini'],
-  ['gemini-api', 'gemini'],
-  ['vertex-ai', 'gemini'],
-  ['llama', 'meta'],
-  ['ollama', 'local-models'],
-  ['lm-studio', 'local-models'],
+  ['xai', 'grok'],
 ]);
 
 function parseArgs() {
@@ -178,34 +174,48 @@ async function readScan(root) {
 
 function targetsByIds(ids) {
   const byId = new Map(targetCatalog.map((target) => [target.id, target]));
-  return ids.map((id) => {
-    const target = byId.get(targetAliases.get(id) ?? id);
+  const targets = [];
+  let includeUniversal = false;
+
+  for (const id of ids) {
+    const resolvedId = targetAliases.get(id) ?? id;
+    if (resolvedId === 'universal') {
+      includeUniversal = true;
+      continue;
+    }
+    const target = byId.get(resolvedId);
     if (!target) {
       throw new Error(`Unknown target "${id}". Use --survey to choose from the list.`);
     }
-    return target;
-  });
+    targets.push(target);
+  }
+
+  if (includeUniversal) {
+    targets.unshift({ id: 'universal', label: 'Universal', root: universalRoot });
+  }
+
+  return targets;
 }
 
 function targetsForOptions(options) {
   if (options.targets?.length) return targetsByIds(options.targets);
-  if (options.agent === 'all') return targetCatalog.filter((target) => target.kind === 'skill');
+  if (options.agent === 'all') return [{ id: 'universal', label: 'Universal', root: universalRoot }, ...targetCatalog];
   return targetsByIds([options.agent]);
 }
 
 function skillRootsForTargets(options, targets) {
-  const skillTargets = targets.filter((target) => target.kind === 'skill');
-  if (options.skillsDir && skillTargets.length) return [options.skillsDir];
-  return [...new Set(skillTargets.map((target) => target.root()))];
-}
-
-function guideTargets(targets) {
-  return targets.filter((target) => target.kind === 'guide');
+  if (options.skillsDir && targets.length) return [options.skillsDir];
+  return [...new Set(targets.map((target) => target.root()))];
 }
 
 function renderSurvey(selected, cursor) {
   console.clear();
-  console.log('Where should Servicemap be available?');
+  console.log('Which agents do you want to install Servicemap to?\n');
+  console.log('— Universal (.agents/skills) — always included —');
+  for (const agent of universalAgents) {
+    console.log(`  • ${agent}`);
+  }
+  console.log('\n— Additional agents —');
   console.log('Use ↑/↓, Space to select, Enter to install.\n');
 
   targetCatalog.forEach((target, index) => {
@@ -256,59 +266,18 @@ function runTargetSurvey() {
   });
 }
 
-function guideText(target) {
-  return `# Servicemap for ${target.label}
-
-These setup notes help ${target.label} use Servicemap when you want it to create a service map for a software project.
-
-Invoke: /servicemap
-
-Goal:
-Scan the current project for third-party services, resolve service logos from the bundled Servicemap database, and create an /internalservicemap page when a website is present.
-If no website can be safely found, create a desktop app fallback named servicemap-desktop.
-
-Recommended local command:
-\`\`\`bash
-npx servicemap --root <project-path>
-\`\`\`
-
-If your agent supports local skills, install the real skill folder with:
-\`\`\`bash
-npx servicemap install-skill --agent all
-\`\`\`
-`;
-}
-
-async function writeGuidePacks(targets, options) {
-  const guideRoot = resolve(homedir(), '.servicemap/model-guides');
-  for (const target of guideTargets(targets)) {
-    const destination = join(guideRoot, target.id);
-    if (options.dryRun) {
-      console.log(`Would write Servicemap guide for ${target.label} to ${destination}`);
-      continue;
-    }
-    await mkdir(destination, { recursive: true });
-    await cp(resolve(packageRoot, 'servicemap/SKILL.md'), join(destination, 'SKILL.md'));
-    await mkdir(join(destination, 'servicemap'), { recursive: true });
-    await cp(resolve(packageRoot, 'servicemap'), join(destination, 'servicemap'), { recursive: true });
-    await writeFile(join(destination, 'README.md'), guideText(target));
-    console.log(`Wrote Servicemap guide for ${target.label} to ${destination}`);
-  }
-}
-
 async function installSkill(options) {
   const source = resolve(packageRoot, 'servicemap');
   const selectedTargets = options.survey && !options.yes
-    ? await runTargetSurvey()
+    ? [{ id: 'universal', label: 'Universal', root: universalRoot }, ...await runTargetSurvey()]
     : targetsForOptions(options);
   const roots = skillRootsForTargets(options, selectedTargets);
-  const notes = guideTargets(selectedTargets);
 
   if (!existsSync(source)) {
     throw new Error(`Bundled skill folder not found: ${source}`);
   }
 
-  if (roots.length === 0 && notes.length === 0) {
+  if (roots.length === 0) {
     console.log('No targets selected. Nothing was installed.');
     return;
   }
@@ -317,7 +286,6 @@ async function installSkill(options) {
     for (const root of roots) {
       console.log(`Would install Servicemap skill to ${join(root, 'servicemap')}`);
     }
-    await writeGuidePacks(selectedTargets, options);
     return;
   }
 
@@ -329,11 +297,7 @@ async function installSkill(options) {
     console.log(`Installed Servicemap skill to ${destination}`);
   }
 
-  await writeGuidePacks(selectedTargets, options);
-
-  if (roots.length > 0) {
-    console.log('Restart your AI app if /servicemap does not appear immediately.');
-  }
+  console.log('Restart your AI app if /servicemap does not appear immediately.');
 }
 
 async function main() {
