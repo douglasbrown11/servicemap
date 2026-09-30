@@ -289,21 +289,53 @@ function skillRootsForTargets(options, targets) {
   return [...new Set(targets.map((target) => target.root()))];
 }
 
+const visibleUniversalLimit = 12;
+const additionalAgentWindowSize = 8;
+
 function renderSurvey(selected, cursor) {
   console.clear();
   console.log('Which agents do you want to install Servicemap to?\n');
   console.log('— Universal (.agents/skills) — always included —');
-  for (const agent of universalAgents) {
+  for (const agent of universalAgents.slice(0, visibleUniversalLimit)) {
     console.log(`  • ${agent}`);
+  }
+  const hiddenUniversalCount = universalAgents.length - visibleUniversalLimit;
+  if (hiddenUniversalCount > 0) {
+    console.log(`  ...and ${hiddenUniversalCount} more`);
   }
   console.log('\n— Additional agents —');
   console.log('Use ↑/↓, Space to select, Enter to install.\n');
 
-  targetCatalog.forEach((target, index) => {
+  const halfWindow = Math.floor(additionalAgentWindowSize / 2);
+  let start = Math.max(0, cursor - halfWindow);
+  start = Math.min(start, Math.max(0, targetCatalog.length - additionalAgentWindowSize));
+  const end = Math.min(targetCatalog.length, start + additionalAgentWindowSize);
+  const beforeCount = start;
+  const afterCount = targetCatalog.length - end;
+
+  if (beforeCount > 0) {
+    console.log(`  ↑ ${beforeCount} more`);
+  }
+
+  targetCatalog.slice(start, end).forEach((target, offset) => {
+    const index = start + offset;
     const pointer = index === cursor ? '>' : ' ';
     const checked = selected.has(target.id) ? 'x' : ' ';
     console.log(`${pointer} [${checked}] ${target.label}`);
   });
+
+  if (afterCount > 0) {
+    console.log(`  ↓ ${afterCount} more`);
+  }
+
+  if (selected.size > 0) {
+    const selectedLabels = targetCatalog
+      .filter((target) => selected.has(target.id))
+      .map((target) => target.label);
+    const preview = selectedLabels.slice(0, 3).join(', ');
+    const remainder = selectedLabels.length > 3 ? ` +${selectedLabels.length - 3} more` : '';
+    console.log(`\nSelected: ${preview}${remainder}`);
+  }
 }
 
 function runTargetSurvey() {
