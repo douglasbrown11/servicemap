@@ -298,6 +298,7 @@ const additionalAgentWindowSize = 8;
 const dim = (value) => `\x1b[2m${value}\x1b[22m`;
 const green = (value) => `\x1b[32m${value}\x1b[39m`;
 const cyan = (value) => `\x1b[36m${value}\x1b[39m`;
+const gold = (value) => `\x1b[33m${value}\x1b[39m`;
 let stableSourceStatus = '';
 
 function timelineStep(text) {
@@ -435,7 +436,7 @@ async function withSpinner(message, action, minimumMs = 1400) {
   let dots = '';
   const startedAt = Date.now();
   const nextText = () => {
-    const text = `${dim('│')}  ${frames[frame]} ${message}${dots}`;
+    const text = `${dim('│')}  ${gold(frames[frame])} ${message}${dots}`;
     frame = (frame + 1) % frames.length;
     if (frame === 0) dots = dots.length >= 5 ? '' : `${dots}.`;
     return text;
