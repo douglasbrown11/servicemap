@@ -291,6 +291,7 @@ function skillRootsForTargets(options, targets) {
 
 const visibleUniversalLimit = 12;
 const additionalAgentWindowSize = 8;
+const dim = (value) => `\x1b[2m${value}\x1b[22m`;
 
 function renderSurvey(selected, cursor) {
   console.clear();
@@ -313,19 +314,17 @@ function renderSurvey(selected, cursor) {
   const beforeCount = start;
   const afterCount = targetCatalog.length - end;
 
-  if (beforeCount > 0) {
-    console.log(`  ↑ ${beforeCount} more`);
-  }
-
   targetCatalog.slice(start, end).forEach((target, offset) => {
     const index = start + offset;
     const pointer = index === cursor ? '>' : ' ';
     const checked = selected.has(target.id) ? 'x' : ' ';
-    console.log(`${pointer} [${checked}] ${target.label}`);
+    console.log(`${pointer} [${checked}] ${target.label} ${dim(`(${target.root()})`)}`);
   });
 
-  if (afterCount > 0) {
-    console.log(`  ↓ ${afterCount} more`);
+  if (beforeCount > 0 || afterCount > 0) {
+    const before = beforeCount > 0 ? `↑ ${beforeCount} more` : '';
+    const after = afterCount > 0 ? `↓ ${afterCount} more` : '';
+    console.log(`  ${dim([before, after].filter(Boolean).join('  '))}`);
   }
 
   if (selected.size > 0) {
