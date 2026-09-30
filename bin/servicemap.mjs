@@ -475,6 +475,29 @@ function runSilent(command, args, options = {}) {
   });
 }
 
+async function withSpinner(message, action) {
+  if (!process.stdout.isTTY) {
+    return action();
+  }
+
+  const frames = ['◒', '◐', '◓', '◑'];
+  let frame = 0;
+  let dots = '';
+  process.stdout.write('\x1b[?25l');
+  const interval = setInterval(() => {
+    process.stdout.write(`\r\x1b[J${frames[frame]}  ${message}${dots}`);
+    frame = (frame + 1) % frames.length;
+    if (frame === 0) dots = dots.length >= 5 ? '' : `${dots}.`;
+  }, 120);
+
+  try {
+    return await action();
+  } finally {
+    clearInterval(interval);
+    process.stdout.write('\r\x1b[J\x1b[?25h');
+  }
+}
+
 async function prepareStableSource(options) {
   const sourceRoot = stableSourceRoot();
   if (options.dryRun) {
@@ -487,11 +510,11 @@ async function prepareStableSource(options) {
 
   try {
     if (existsSync(join(sourceRoot, '.git'))) {
-      await runSilent('git', ['pull', '--ff-only'], { cwd: sourceRoot });
+      await withSpinner('Updating repository…', () => runSilent('git', ['pull', '--ff-only'], { cwd: sourceRoot }));
       timelineStep('Repository updated');
     } else {
       await rm(sourceRoot, { recursive: true, force: true });
-      await runSilent('git', ['clone', '--depth', '1', repositoryUrl, sourceRoot]);
+      await withSpinner('Cloning repository…', () => runSilent('git', ['clone', '--depth', '1', repositoryUrl, sourceRoot]));
       timelineStep('Repository cloned');
     }
   } catch (_error) {
