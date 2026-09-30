@@ -475,7 +475,13 @@ function runSilent(command, args, options = {}) {
   });
 }
 
-async function withSpinner(message, action) {
+function wait(ms) {
+  return new Promise((resolvePromise) => {
+    setTimeout(resolvePromise, ms);
+  });
+}
+
+async function withSpinner(message, action, minimumMs = 900) {
   if (!process.stdout.isTTY) {
     return action();
   }
@@ -483,15 +489,22 @@ async function withSpinner(message, action) {
   const frames = ['◒', '◐', '◓', '◑'];
   let frame = 0;
   let dots = '';
-  process.stdout.write('\x1b[?25l');
-  const interval = setInterval(() => {
+  const startedAt = Date.now();
+  const writeFrame = () => {
     process.stdout.write(`\r\x1b[J${frames[frame]}  ${message}${dots}`);
     frame = (frame + 1) % frames.length;
     if (frame === 0) dots = dots.length >= 5 ? '' : `${dots}.`;
-  }, 120);
+  };
+
+  process.stdout.write('\x1b[?25l');
+  writeFrame();
+  const interval = setInterval(writeFrame, 120);
 
   try {
-    return await action();
+    const result = await action();
+    const remainingMs = minimumMs - (Date.now() - startedAt);
+    if (remainingMs > 0) await wait(remainingMs);
+    return result;
   } finally {
     clearInterval(interval);
     process.stdout.write('\r\x1b[J\x1b[?25h');
