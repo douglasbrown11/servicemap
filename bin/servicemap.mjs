@@ -326,7 +326,7 @@ function renderSurvey(selected, cursor) {
   timelineActive('Which agents do you want to install Servicemap to?');
   timelineLine('Universal (.agents/skills) — always included');
   for (const agent of universalAgents.slice(0, visibleUniversalLimit)) {
-    timelineLine(`• ${agent}`);
+    timelineLine(`${green('•')} ${agent}`);
   }
   const hiddenUniversalCount = universalAgents.length - visibleUniversalLimit;
   if (hiddenUniversalCount > 0) {
