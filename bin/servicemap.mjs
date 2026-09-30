@@ -1,13 +1,15 @@
 #!/usr/bin/env node
 import { spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
-import { cp, mkdir, readFile, rm } from 'node:fs/promises';
+import { cp, mkdir, readFile, rm, symlink } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import { homedir } from 'node:os';
 import readline from 'node:readline';
 import { fileURLToPath } from 'node:url';
 
 const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const repositoryUrl = 'https://github.com/douglasbrown11/servicemap.git';
+const stableSourceRoot = () => resolve(homedir(), '.servicemap/source');
 const scanScript = resolve(packageRoot, 'servicemap/scripts/scan-project.mjs');
 const pageScript = resolve(packageRoot, 'servicemap/scripts/generate-page.mjs');
 const desktopScript = resolve(packageRoot, 'servicemap/scripts/generate-desktop-app.mjs');
@@ -162,6 +164,7 @@ function parseArgs() {
     agent: 'codex',
     targets: null,
     skillsDir: null,
+    installMethod: null,
     allowedEmails: [],
     invokedWithoutArgs: args.length === 0,
     explicitCommand: false,
@@ -190,6 +193,7 @@ function parseArgs() {
     }
     if (arg === '--agent') options.agent = args[++index] ?? options.agent;
     if (arg === '--targets') options.targets = (args[++index] ?? '').split(',').map((target) => target.trim()).filter(Boolean);
+    if (arg === '--install-method') options.installMethod = args[++index] ?? null;
     if (arg === '--allow-email') {
       options.allowedEmails.push(args[++index] ?? '');
       options.generationRequested = true;
@@ -217,7 +221,7 @@ Usage:
   servicemap
   servicemap generate [--root <project>] [--mode auto|page|desktop] [--allow-emails <list>] [--dry-run]
   servicemap --root <project> [--mode auto|page|desktop] [--allow-emails <list>] [--dry-run]
-  servicemap install-skill [--survey] [--agent codex|claude|grok|all] [--targets <ids>]
+  servicemap install-skill [--survey] [--agent codex|claude|grok|all] [--targets <ids>] [--install-method copy|symlink]
   servicemap skills install [--survey] [--agent codex|claude|grok|all]
 
 Examples:
@@ -292,20 +296,41 @@ function skillRootsForTargets(options, targets) {
 const visibleUniversalLimit = 12;
 const additionalAgentWindowSize = 8;
 const dim = (value) => `\x1b[2m${value}\x1b[22m`;
+const green = (value) => `\x1b[32m${value}\x1b[39m`;
+const cyan = (value) => `\x1b[36m${value}\x1b[39m`;
+
+function timelineStep(text) {
+  console.log(`${green('◇')}  ${text}`);
+  console.log(dim('│'));
+}
+
+function timelineActive(text) {
+  console.log(`${green('◆')}  ${text}`);
+  console.log(dim('│'));
+}
+
+function timelineLine(text = '') {
+  console.log(`${dim('│')}  ${text}`);
+}
 
 function renderSurvey(selected, cursor) {
   console.clear();
-  console.log('Which agents do you want to install Servicemap to?\n');
-  console.log('— Universal (.agents/skills) — always included —');
+  timelineStep(cyan('servicemap'));
+  timelineStep(`Source: ${repositoryUrl}`);
+  timelineStep(`Stable source: ${stableSourceRoot()}`);
+  timelineActive('Which agents do you want to install Servicemap to?');
+  timelineLine('Universal (.agents/skills) — always included');
   for (const agent of universalAgents.slice(0, visibleUniversalLimit)) {
-    console.log(`  • ${agent}`);
+    timelineLine(`• ${agent}`);
   }
   const hiddenUniversalCount = universalAgents.length - visibleUniversalLimit;
   if (hiddenUniversalCount > 0) {
-    console.log(`  ...and ${hiddenUniversalCount} more`);
+    timelineLine(`...and ${hiddenUniversalCount} more`);
   }
-  console.log('\n— Additional agents —');
-  console.log('Use ↑/↓, Space to select, Enter to install.\n');
+  timelineLine('');
+  timelineLine('Additional agents');
+  timelineLine('Use ↑/↓, Space to select, Enter to install.');
+  timelineLine('');
 
   const halfWindow = Math.floor(additionalAgentWindowSize / 2);
   let start = Math.max(0, cursor - halfWindow);
@@ -318,13 +343,13 @@ function renderSurvey(selected, cursor) {
     const index = start + offset;
     const pointer = index === cursor ? '>' : ' ';
     const checked = selected.has(target.id) ? 'x' : ' ';
-    console.log(`${pointer} [${checked}] ${target.label} ${dim(`(${target.root()})`)}`);
+    timelineLine(`${pointer} [${checked}] ${target.label} ${dim(`(${target.root()})`)}`);
   });
 
   if (beforeCount > 0 || afterCount > 0) {
     const before = beforeCount > 0 ? `↑ ${beforeCount} more` : '';
     const after = afterCount > 0 ? `↓ ${afterCount} more` : '';
-    console.log(`  ${dim([before, after].filter(Boolean).join('  '))}`);
+    timelineLine(dim([before, after].filter(Boolean).join('  ')));
   }
 
   if (selected.size > 0) {
@@ -333,7 +358,8 @@ function renderSurvey(selected, cursor) {
       .map((target) => target.label);
     const preview = selectedLabels.slice(0, 3).join(', ');
     const remainder = selectedLabels.length > 3 ? ` +${selectedLabels.length - 3} more` : '';
-    console.log(`\nSelected: ${preview}${remainder}`);
+    timelineLine('');
+    timelineLine(`Selected: ${preview}${remainder}`);
   }
 }
 
@@ -378,12 +404,134 @@ function runTargetSurvey() {
   });
 }
 
+function renderInstallMethodSurvey(cursor) {
+  console.clear();
+  const methods = [
+    { id: 'symlink', label: 'Symlink', note: 'Recommended, one stable source for easy updates' },
+    { id: 'copy', label: 'Copy', note: 'Standalone copies in each selected agent folder' },
+  ];
+
+  timelineStep(cyan('servicemap'));
+  timelineStep(`Source: ${repositoryUrl}`);
+  timelineStep(`Stable source: ${stableSourceRoot()}`);
+  timelineStep('Agents selected');
+  timelineActive('Installation method');
+  methods.forEach((method, index) => {
+    const pointer = index === cursor ? '>' : ' ';
+    const selected = index === cursor ? '●' : '○';
+    timelineLine(`${pointer} ${selected} ${method.label} ${dim(`(${method.note})`)}`);
+  });
+  timelineLine(dim('↑/↓ to navigate • Enter to confirm'));
+}
+
+function runInstallMethodSurvey() {
+  if (!process.stdin.isTTY || !process.stdout.isTTY) {
+    return Promise.resolve('copy');
+  }
+
+  const methods = ['symlink', 'copy'];
+  let cursor = 0;
+
+  return new Promise((resolvePromise) => {
+    readline.emitKeypressEvents(process.stdin);
+    process.stdin.setRawMode(true);
+    renderInstallMethodSurvey(cursor);
+
+    const onKeypress = (_str, key) => {
+      if (key.name === 'up') cursor = Math.max(0, cursor - 1);
+      if (key.name === 'down') cursor = Math.min(methods.length - 1, cursor + 1);
+      if (key.name === 'return') {
+        process.stdin.setRawMode(false);
+        process.stdin.off('keypress', onKeypress);
+        console.log('');
+        resolvePromise(methods[cursor]);
+        return;
+      }
+      if (key.ctrl && key.name === 'c') {
+        process.stdin.setRawMode(false);
+        process.stdin.off('keypress', onKeypress);
+        process.exit(130);
+      }
+
+      renderInstallMethodSurvey(cursor);
+    };
+
+    process.stdin.on('keypress', onKeypress);
+  });
+}
+
+function runSilent(command, args, options = {}) {
+  return new Promise((resolvePromise, reject) => {
+    const child = spawn(command, args, {
+      stdio: 'ignore',
+      ...options,
+    });
+
+    child.on('error', reject);
+    child.on('exit', (code) => {
+      if (code === 0) resolvePromise();
+      else reject(new Error(`${command} ${args.join(' ')} exited with code ${code}`));
+    });
+  });
+}
+
+async function prepareStableSource(options) {
+  const sourceRoot = stableSourceRoot();
+  if (options.dryRun) {
+    timelineStep(`Would prepare stable source at ${sourceRoot}`);
+    return resolve(sourceRoot, 'servicemap');
+  }
+
+  timelineStep(`Source: ${repositoryUrl}`);
+  await mkdir(dirname(sourceRoot), { recursive: true });
+
+  try {
+    if (existsSync(join(sourceRoot, '.git'))) {
+      await runSilent('git', ['pull', '--ff-only'], { cwd: sourceRoot });
+      timelineStep('Repository updated');
+    } else {
+      await rm(sourceRoot, { recursive: true, force: true });
+      await runSilent('git', ['clone', '--depth', '1', repositoryUrl, sourceRoot]);
+      timelineStep('Repository cloned');
+    }
+  } catch (_error) {
+    await rm(sourceRoot, { recursive: true, force: true });
+    await cp(packageRoot, sourceRoot, { recursive: true });
+    timelineStep('Repository unavailable; copied packaged source');
+  }
+
+  return resolve(sourceRoot, 'servicemap');
+}
+
+async function installIntoRoot(root, source, method, options) {
+  const destination = join(root, 'servicemap');
+  if (options.dryRun) {
+    const verb = method === 'symlink' ? 'link' : 'copy';
+    console.log(`Would ${verb} Servicemap skill to ${destination}`);
+    return;
+  }
+
+  await mkdir(root, { recursive: true });
+  await rm(destination, { recursive: true, force: true });
+
+  if (method === 'symlink') {
+    await symlink(source, destination, 'dir');
+    console.log(`Linked Servicemap skill to ${destination}`);
+    return;
+  }
+
+  await cp(source, destination, { recursive: true });
+  console.log(`Installed Servicemap skill to ${destination}`);
+}
+
 async function installSkill(options) {
-  const source = resolve(packageRoot, 'servicemap');
+  let source = resolve(packageRoot, 'servicemap');
   const selectedTargets = options.survey && !options.yes
     ? [{ id: 'universal', label: 'Universal', root: universalRoot }, ...await runTargetSurvey()]
     : targetsForOptions(options);
   const roots = skillRootsForTargets(options, selectedTargets);
+  const method = options.installMethod
+    ?? (options.survey && !options.yes ? await runInstallMethodSurvey() : 'copy');
 
   if (!existsSync(source)) {
     throw new Error(`Bundled skill folder not found: ${source}`);
@@ -394,19 +542,19 @@ async function installSkill(options) {
     return;
   }
 
-  if (options.dryRun) {
-    for (const root of roots) {
-      console.log(`Would install Servicemap skill to ${join(root, 'servicemap')}`);
+  if (!['copy', 'symlink'].includes(method)) {
+    throw new Error(`Unknown install method "${method}". Use copy or symlink.`);
+  }
+
+  if (method === 'symlink') {
+    source = await prepareStableSource(options);
+    if (!existsSync(source) && !options.dryRun) {
+      throw new Error(`Stable skill source not found: ${source}`);
     }
-    return;
   }
 
   for (const root of roots) {
-    const destination = join(root, 'servicemap');
-    await mkdir(root, { recursive: true });
-    await rm(destination, { recursive: true, force: true });
-    await cp(source, destination, { recursive: true });
-    console.log(`Installed Servicemap skill to ${destination}`);
+    await installIntoRoot(root, source, method, options);
   }
 
   console.log('Restart your AI app if /servicemap does not appear immediately.');
