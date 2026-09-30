@@ -298,6 +298,7 @@ const additionalAgentWindowSize = 8;
 const dim = (value) => `\x1b[2m${value}\x1b[22m`;
 const green = (value) => `\x1b[32m${value}\x1b[39m`;
 const cyan = (value) => `\x1b[36m${value}\x1b[39m`;
+let stableSourceStatus = '';
 
 function timelineStep(text) {
   console.log(`${green('◇')}  ${text}`);
@@ -318,6 +319,9 @@ function renderSurvey(selected, cursor) {
   timelineStep(cyan('servicemap'));
   timelineStep(`Source: ${repositoryUrl}`);
   timelineStep(`Stable source: ${stableSourceRoot()}`);
+  if (stableSourceStatus) {
+    timelineStep(stableSourceStatus);
+  }
   timelineActive('Which agents do you want to install Servicemap to?');
   timelineLine('Universal (.agents/skills) — always included');
   for (const agent of universalAgents.slice(0, visibleUniversalLimit)) {
@@ -477,15 +481,18 @@ async function prepareStableSource(options) {
   try {
     if (existsSync(join(sourceRoot, '.git'))) {
       await withSpinner('Updating repository…', () => runSilent('git', ['pull', '--ff-only'], { cwd: sourceRoot }));
+      stableSourceStatus = 'Repository updated';
       timelineStep('Repository updated');
     } else {
       await rm(sourceRoot, { recursive: true, force: true });
       await withSpinner('Cloning repository…', () => runSilent('git', ['clone', '--depth', '1', repositoryUrl, sourceRoot]));
+      stableSourceStatus = 'Repository cloned';
       timelineStep('Repository cloned');
     }
   } catch (_error) {
     await rm(sourceRoot, { recursive: true, force: true });
     await cp(packageRoot, sourceRoot, { recursive: true });
+    stableSourceStatus = 'Repository unavailable; copied packaged source';
     timelineStep('Repository unavailable; copied packaged source');
   }
 
@@ -515,19 +522,10 @@ async function installIntoRoot(root, source, method, options) {
 
 async function installSkill(options) {
   let source = resolve(packageRoot, 'servicemap');
-  const selectedTargets = options.survey && !options.yes
-    ? [{ id: 'universal', label: 'Universal', root: universalRoot }, ...await runTargetSurvey()]
-    : targetsForOptions(options);
-  const roots = skillRootsForTargets(options, selectedTargets);
   const method = options.installMethod ?? 'symlink';
 
   if (!existsSync(source)) {
     throw new Error(`Bundled skill folder not found: ${source}`);
-  }
-
-  if (roots.length === 0) {
-    console.log('No targets selected. Nothing was installed.');
-    return;
   }
 
   if (!['copy', 'symlink'].includes(method)) {
@@ -539,6 +537,16 @@ async function installSkill(options) {
     if (!existsSync(source) && !options.dryRun) {
       throw new Error(`Stable skill source not found: ${source}`);
     }
+  }
+
+  const selectedTargets = options.survey && !options.yes
+    ? [{ id: 'universal', label: 'Universal', root: universalRoot }, ...await runTargetSurvey()]
+    : targetsForOptions(options);
+  const roots = skillRootsForTargets(options, selectedTargets);
+
+  if (roots.length === 0) {
+    console.log('No targets selected. Nothing was installed.');
+    return;
   }
 
   for (const root of roots) {
