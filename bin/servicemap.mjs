@@ -352,8 +352,8 @@ function runTargetSurvey() {
     renderSurvey(selected, cursor);
 
     const onKeypress = (_str, key) => {
-      if (key.name === 'up') cursor = (cursor - 1 + targetCatalog.length) % targetCatalog.length;
-      if (key.name === 'down') cursor = (cursor + 1) % targetCatalog.length;
+      if (key.name === 'up') cursor = Math.max(0, cursor - 1);
+      if (key.name === 'down') cursor = Math.min(targetCatalog.length - 1, cursor + 1);
       if (key.name === 'space') {
         const id = targetCatalog[cursor].id;
         if (selected.has(id)) selected.delete(id);
