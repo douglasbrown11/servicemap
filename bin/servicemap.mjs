@@ -404,62 +404,6 @@ function runTargetSurvey() {
   });
 }
 
-function renderInstallMethodSurvey(cursor) {
-  console.clear();
-  const methods = [
-    { id: 'symlink', label: 'Symlink', note: 'Recommended, one stable source for easy updates' },
-    { id: 'copy', label: 'Copy', note: 'Standalone copies in each selected agent folder' },
-  ];
-
-  timelineStep(cyan('servicemap'));
-  timelineStep(`Source: ${repositoryUrl}`);
-  timelineStep(`Stable source: ${stableSourceRoot()}`);
-  timelineStep('Agents selected');
-  timelineActive('Installation method');
-  methods.forEach((method, index) => {
-    const pointer = index === cursor ? '>' : ' ';
-    const selected = index === cursor ? '●' : '○';
-    timelineLine(`${pointer} ${selected} ${method.label} ${dim(`(${method.note})`)}`);
-  });
-  timelineLine(dim('↑/↓ to navigate • Enter to confirm'));
-}
-
-function runInstallMethodSurvey() {
-  if (!process.stdin.isTTY || !process.stdout.isTTY) {
-    return Promise.resolve('copy');
-  }
-
-  const methods = ['symlink', 'copy'];
-  let cursor = 0;
-
-  return new Promise((resolvePromise) => {
-    readline.emitKeypressEvents(process.stdin);
-    process.stdin.setRawMode(true);
-    renderInstallMethodSurvey(cursor);
-
-    const onKeypress = (_str, key) => {
-      if (key.name === 'up') cursor = Math.max(0, cursor - 1);
-      if (key.name === 'down') cursor = Math.min(methods.length - 1, cursor + 1);
-      if (key.name === 'return') {
-        process.stdin.setRawMode(false);
-        process.stdin.off('keypress', onKeypress);
-        console.log('');
-        resolvePromise(methods[cursor]);
-        return;
-      }
-      if (key.ctrl && key.name === 'c') {
-        process.stdin.setRawMode(false);
-        process.stdin.off('keypress', onKeypress);
-        process.exit(130);
-      }
-
-      renderInstallMethodSurvey(cursor);
-    };
-
-    process.stdin.on('keypress', onKeypress);
-  });
-}
-
 function runSilent(command, args, options = {}) {
   return new Promise((resolvePromise, reject) => {
     const child = spawn(command, args, {
@@ -566,8 +510,7 @@ async function installSkill(options) {
     ? [{ id: 'universal', label: 'Universal', root: universalRoot }, ...await runTargetSurvey()]
     : targetsForOptions(options);
   const roots = skillRootsForTargets(options, selectedTargets);
-  const method = options.installMethod
-    ?? (options.survey && !options.yes ? await runInstallMethodSurvey() : 'copy');
+  const method = options.installMethod ?? 'symlink';
 
   if (!existsSync(source)) {
     throw new Error(`Bundled skill folder not found: ${source}`);
