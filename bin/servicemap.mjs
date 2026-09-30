@@ -425,19 +425,28 @@ function wait(ms) {
   });
 }
 
-async function withSpinner(message, action, minimumMs = 900) {
-  if (!process.stdout.isTTY) {
-    return action();
-  }
-
+async function withSpinner(message, action, minimumMs = 1400) {
   const frames = ['◒', '◐', '◓', '◑'];
   let frame = 0;
   let dots = '';
   const startedAt = Date.now();
-  const writeFrame = () => {
-    process.stdout.write(`\r\x1b[J${frames[frame]}  ${message}${dots}`);
+  const nextText = () => {
+    const text = `${dim('│')}  ${frames[frame]} ${message}${dots}`;
     frame = (frame + 1) % frames.length;
     if (frame === 0) dots = dots.length >= 5 ? '' : `${dots}.`;
+    return text;
+  };
+
+  if (!process.stdout.isTTY) {
+    console.log(nextText());
+    const result = await action();
+    const remainingMs = minimumMs - (Date.now() - startedAt);
+    if (remainingMs > 0) await wait(remainingMs);
+    return result;
+  }
+
+  const writeFrame = () => {
+    process.stdout.write(`\r\x1b[J${nextText()}`);
   };
 
   process.stdout.write('\x1b[?25l');
