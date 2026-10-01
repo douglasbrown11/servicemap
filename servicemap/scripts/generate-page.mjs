@@ -74,7 +74,9 @@ function pageCss() {
     .mode-button { min-height: 36px; border: 0; border-radius: 8px; background: transparent; color: #789086; padding: 0 12px; cursor: pointer; font: inherit; font-weight: 800; }
     .mode-button.is-active { background: #276f53; color: #c9f9df; box-shadow: 0 0 18px rgba(101,240,173,0.16); }
     .map { position: relative; height: calc(100vh - 88px); min-height: 760px; background: radial-gradient(circle at 50% 52%, rgba(41, 96, 69, 0.22), transparent 24%), radial-gradient(circle at 1px 1px, rgba(88, 160, 120, 0.2) 1px, transparent 1px), #020806; background-size: auto, 28px 28px, auto; }
-    .map-plane { position: absolute; inset: 0; transform: scale(var(--zoom, 1)); transform-origin: 50% 50%; transition: transform 160ms ease; }
+    .map.is-panning { cursor: grabbing; user-select: none; }
+    .map-plane { position: absolute; inset: 0; transform: translate3d(var(--pan-x, 0px), var(--pan-y, 0px), 0) scale(var(--zoom, 1)); transform-origin: 50% 50%; transition: transform 160ms ease; }
+    .map.is-panning .map-plane { transition: none; }
     .intro { position: absolute; left: 32px; top: 32px; z-index: 20; }
     .intro strong { display: block; color: #779286; font-size: 12px; letter-spacing: 0.22em; text-transform: uppercase; }
     .intro span { display: block; margin-top: 8px; color: #53665d; font-size: 14px; }
@@ -270,7 +272,7 @@ function interactiveTsxPage(graph) {
   return `'use client';
 
 import dynamic from 'next/dynamic';
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent } from 'react';
 import type { ForceGraphMethods, NodeObject } from 'react-force-graph-3d';
 import * as THREE from 'three';
 import SpriteText from 'three-spritetext';
@@ -789,6 +791,8 @@ export default function InternalServiceMapPage() {
   })), [services]);
   const [mode, setMode] = useState<'2d' | '3d'>('2d');
   const [zoom, setZoom] = useState(1);
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [panStart, setPanStart] = useState<{ pointerId: number; x: number; y: number; panX: number; panY: number } | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [isAddingService, setIsAddingService] = useState(false);
   const [newService, setNewService] = useState<NewServiceDraft>({ name: '', category: '', parentId: 'product' });
@@ -805,7 +809,26 @@ export default function InternalServiceMapPage() {
   const nodeById = useMemo(() => new Map(nodes.map((node) => [node.id, node])), [nodes]);
   const zoomIn = () => setZoom((current) => Math.min(1.45, Number((current + 0.12).toFixed(2))));
   const zoomOut = () => setZoom((current) => Math.max(0.7, Number((current - 0.12).toFixed(2))));
-  const resetZoom = () => setZoom(1);
+  const resetZoom = () => {
+    setZoom(1);
+    setPan({ x: 0, y: 0 });
+  };
+  const startPan = (event: PointerEvent<HTMLElement>) => {
+    if (mode !== '2d' || event.button !== 0 || (event.target as HTMLElement).closest('button, a, input, textarea, select')) return;
+    event.currentTarget.setPointerCapture(event.pointerId);
+    setPanStart({ pointerId: event.pointerId, x: event.clientX, y: event.clientY, panX: pan.x, panY: pan.y });
+  };
+  const movePan = (event: PointerEvent<HTMLElement>) => {
+    if (!panStart || panStart.pointerId !== event.pointerId) return;
+    setPan({
+      x: panStart.panX + event.clientX - panStart.x,
+      y: panStart.panY + event.clientY - panStart.y,
+    });
+  };
+  const stopPan = (event: PointerEvent<HTMLElement>) => {
+    if (panStart?.pointerId !== event.pointerId) return;
+    setPanStart(null);
+  };
   const addService = () => {
     const name = newService.name.trim();
     if (!name) return;
@@ -863,14 +886,20 @@ export default function InternalServiceMapPage() {
         </div>
       </header>
 
-      <section className="map">
+      <section
+        className={\`map \${panStart ? 'is-panning' : ''}\`}
+        onPointerDown={startPan}
+        onPointerMove={movePan}
+        onPointerUp={stopPan}
+        onPointerCancel={stopPan}
+      >
         <div className="intro">
           <strong>{graph.project?.name ?? 'Project'} infrastructure</strong>
           <span>{selected ? \`Tracing \${selected.name}\` : mode === '3d' ? 'Rotate and explore your service relationships' : 'Select a service to trace its dependencies'}</span>
         </div>
         {mode === '2d' ? (
           <>
-            <div className="map-plane" style={{ '--zoom': zoom } as CSSProperties}>
+            <div className="map-plane" style={{ '--zoom': zoom, '--pan-x': \`\${pan.x}px\`, '--pan-y': \`\${pan.y}px\` } as CSSProperties}>
               <svg className="edges" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
                 {nodes.map((service) => {
                   const parent = service.parentId ? nodeById.get(service.parentId) : null;
