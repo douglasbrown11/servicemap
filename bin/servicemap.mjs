@@ -2,6 +2,7 @@
 import { spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { cp, mkdir, readFile, rm, symlink } from 'node:fs/promises';
+import net from 'node:net';
 import { dirname, join, resolve } from 'node:path';
 import { homedir } from 'node:os';
 import readline from 'node:readline';
@@ -166,6 +167,7 @@ function parseArgs() {
     skillsDir: null,
     installMethod: null,
     allowedEmails: [],
+    open: true,
     invokedWithoutArgs: args.length === 0,
     explicitCommand: false,
     generationRequested: false,
@@ -207,6 +209,7 @@ function parseArgs() {
     if (arg === '--survey') options.survey = true;
     if (arg === '--yes' || arg === '-y') options.yes = true;
     if (arg === '--dry-run') options.dryRun = true;
+    if (arg === '--no-open') options.open = false;
     if (arg === '--help' || arg === '-h') options.help = true;
   }
 
@@ -219,8 +222,8 @@ function help() {
 
 Usage:
   servicemap
-  servicemap generate [--root <project>] [--mode auto|page|desktop] [--allow-emails <list>] [--dry-run]
-  servicemap --root <project> [--mode auto|page|desktop] [--allow-emails <list>] [--dry-run]
+  servicemap generate [--root <project>] [--mode auto|page|desktop] [--allow-emails <list>] [--dry-run] [--no-open]
+  servicemap --root <project> [--mode auto|page|desktop] [--allow-emails <list>] [--dry-run] [--no-open]
   servicemap install-skill [--survey] [--agent codex|claude|grok|all] [--targets <ids>] [--install-method copy|symlink]
   servicemap skills install [--survey] [--agent codex|claude|grok|all]
 
@@ -250,6 +253,96 @@ function run(command, args, options = {}) {
       else reject(new Error(`${command} ${args.join(' ')} exited with code ${code}`));
     });
   });
+}
+
+function openUrl(url) {
+  const command = process.platform === 'darwin'
+    ? 'open'
+    : process.platform === 'win32'
+      ? 'cmd'
+      : 'xdg-open';
+  const args = process.platform === 'win32' ? ['/c', 'start', '', url] : [url];
+  const child = spawn(command, args, { stdio: 'ignore', detached: true });
+  child.unref();
+}
+
+function findOpenPort() {
+  return new Promise((resolvePromise, reject) => {
+    const server = net.createServer();
+    server.on('error', reject);
+    server.listen(0, '127.0.0.1', () => {
+      const address = server.address();
+      const port = typeof address === 'object' && address ? address.port : 5173;
+      server.close(() => resolvePromise(port));
+    });
+  });
+}
+
+function waitForPort(port, timeoutMs = 10000) {
+  const startedAt = Date.now();
+  return new Promise((resolvePromise, reject) => {
+    const tryConnect = () => {
+      const socket = net.connect({ host: '127.0.0.1', port });
+      socket.on('connect', () => {
+        socket.destroy();
+        resolvePromise();
+      });
+      socket.on('error', () => {
+        socket.destroy();
+        if (Date.now() - startedAt > timeoutMs) {
+          reject(new Error(`Timed out waiting for desktop preview on port ${port}`));
+          return;
+        }
+        setTimeout(tryConnect, 150);
+      });
+    };
+    tryConnect();
+  });
+}
+
+async function openDesktopPreview(root) {
+  const appRoot = resolve(root, 'servicemap-desktop');
+  if (!existsSync(join(appRoot, 'node_modules'))) {
+    console.log('Installing desktop preview dependencies...');
+    await run('npm', ['install'], { cwd: appRoot });
+  }
+
+  const port = await findOpenPort();
+  const child = spawn('npm', ['run', 'dev', '--', '--host', '127.0.0.1', '--port', String(port), '--strictPort'], {
+    cwd: appRoot,
+    stdio: 'ignore',
+    detached: true,
+  });
+  child.unref();
+
+  await waitForPort(port);
+  const url = `http://127.0.0.1:${port}/`;
+  openUrl(url);
+  console.log(`Opened desktop servicemap preview at ${url}`);
+}
+
+async function openGeneratedPage(root, framework) {
+  if (framework === 'static') {
+    const filePath = resolve(root, 'public/internalservicemap.html');
+    openUrl(filePath);
+    console.log(`Opened generated servicemap page at ${filePath}`);
+    return;
+  }
+
+  const packageJson = JSON.parse(await readFile(resolve(root, 'package.json'), 'utf8').catch(() => '{}'));
+  const dependencies = {
+    ...(packageJson.dependencies ?? {}),
+    ...(packageJson.devDependencies ?? {}),
+  };
+  const port = dependencies.next ? 3000 : dependencies.vite ? 5173 : null;
+  if (!port) {
+    console.log('Generated /internalservicemap. Start the project dev server to view it.');
+    return;
+  }
+
+  const url = `http://127.0.0.1:${port}/internalservicemap`;
+  openUrl(url);
+  console.log(`Opened generated servicemap page at ${url}`);
 }
 
 async function readScan(root) {
@@ -600,8 +693,10 @@ async function main() {
 
   if (selectedMode === 'desktop') {
     await run(process.execPath, [desktopScript, '--root', options.root]);
+    if (options.open) await openDesktopPreview(options.root);
   } else {
     await run(process.execPath, [pageScript, '--root', options.root]);
+    if (options.open) await openGeneratedPage(options.root, scan.project?.framework);
   }
 }
 
