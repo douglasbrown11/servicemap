@@ -59,7 +59,9 @@ function pageCss() {
     .brand h1 { margin: 0; font-size: 20px; line-height: 1; letter-spacing: 0; }
     .brand p, .top-meta { margin: 6px 0 0; color: #8aa097; font-size: 14px; }
     .top-actions { display: flex; align-items: center; gap: 12px; color: #8da59a; font-size: 14px; white-space: nowrap; }
-    .mode-pill { border-radius: 8px; background: #0b130f; color: #7cf1b5; padding: 8px 12px; }
+    .mode-toggle { display: inline-flex; gap: 4px; padding: 4px; border-radius: 10px; background: #0b130f; }
+    .mode-button { min-height: 36px; border: 0; border-radius: 8px; background: transparent; color: #789086; padding: 0 12px; cursor: pointer; font: inherit; font-weight: 800; }
+    .mode-button.is-active { background: #276f53; color: #c9f9df; box-shadow: 0 0 18px rgba(101,240,173,0.16); }
     .map { position: relative; height: calc(100vh - 88px); min-height: 760px; background: radial-gradient(circle at 50% 52%, rgba(41, 96, 69, 0.22), transparent 24%), radial-gradient(circle at 1px 1px, rgba(88, 160, 120, 0.2) 1px, transparent 1px), #020806; background-size: auto, 28px 28px, auto; }
     .intro { position: absolute; left: 32px; top: 32px; z-index: 20; }
     .intro strong { display: block; color: #779286; font-size: 12px; letter-spacing: 0.22em; text-transform: uppercase; }
@@ -107,6 +109,16 @@ function pageCss() {
     .delete-button { color: #ff6b57; background: transparent; font-weight: 800; }
     .save-button { min-height: 48px; border-radius: 10px; background: #287a5a; color: #effbf5; padding: 0 18px; font-weight: 800; box-shadow: 0 10px 30px rgba(54,180,126,0.18); }
     .helper-text { margin: 10px 0 0; color: #687c72; font-size: 12px; line-height: 1.45; }
+    .three-scene { position: absolute; inset: 0; perspective: 920px; overflow: hidden; cursor: grab; touch-action: none; }
+    .three-scene:active { cursor: grabbing; }
+    .three-space { position: absolute; left: 50%; top: 50%; width: 620px; height: 620px; transform-style: preserve-3d; transform: translate(-50%, -50%) rotateX(var(--rx, 58deg)) rotateZ(var(--rz, -28deg)); transition: transform 140ms ease; pointer-events: none; }
+    .three-link { position: absolute; left: 50%; top: 50%; width: var(--length); height: 1px; transform-origin: 0 0; transform: translate3d(0, 0, 0) rotateZ(var(--angle)) translateY(var(--z)); background: linear-gradient(90deg, rgba(101,240,173,0.42), rgba(101,240,173,0.05)); }
+    .three-node { position: absolute; left: 50%; top: 50%; width: 82px; height: 82px; transform: translate3d(var(--x), var(--y), var(--z)) translate(-50%, -50%) rotateZ(28deg) rotateX(-58deg); border: 0; border-radius: 999px; background: transparent; color: #eaf8f1; cursor: pointer; font: inherit; text-align: center; pointer-events: auto; }
+    .three-orb { display: grid; place-items: center; width: 38px; height: 38px; margin: 0 auto 7px; border-radius: 999px; background: var(--color); color: #fff; box-shadow: 0 0 28px color-mix(in srgb, var(--color), transparent 44%); font-size: 12px; font-weight: 900; }
+    .three-node span { display: block; font-size: 10px; line-height: 1.15; text-shadow: 0 2px 8px #000; }
+    .three-node.is-selected .three-orb { outline: 2px solid #65f0ad; outline-offset: 4px; }
+    .three-core { position: absolute; left: 50%; top: 50%; display: grid; place-items: center; width: 72px; height: 72px; transform: translate(-50%, -50%); border-radius: 999px; background: #f7faf7; color: #101611; font-size: 30px; box-shadow: 0 0 0 10px rgba(101,240,173,0.14), 0 0 46px rgba(101,240,173,0.22); }
+    .three-hint { position: absolute; left: 50%; bottom: 30px; z-index: 21; transform: translateX(-50%); border: 1px solid rgba(255,255,255,0.1); border-radius: 999px; background: rgba(11,20,15,0.9); color: #789086; padding: 10px 18px; font-size: 12px; }
     @media (max-width: 920px) {
       .map { min-height: 1120px; }
       .service-node { width: 220px; }
@@ -171,7 +183,10 @@ function htmlBody(graph) {
         </div>
         <div class="top-actions">
           <span>${services.length} services</span>
-          <span class="mode-pill">2D</span>
+          <span class="mode-toggle" aria-label="View mode">
+            <span class="mode-button is-active">2D</span>
+            <span class="mode-button">3D</span>
+          </span>
         </div>
       </header>
       <section class="map">
@@ -216,7 +231,7 @@ ${htmlBody(graph)}
 function interactiveTsxPage(graph) {
   return `'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type CSSProperties } from 'react';
 
 const css = ${JSON.stringify(pageCss())};
 type Evidence = { type?: string; value?: string; confidence?: string };
@@ -243,6 +258,38 @@ function edgePath(node: ServiceNode) {
   const endX = isLeft ? 47 : 53;
   const midX = isLeft ? Math.max(fromX + 7, 42) : Math.min(fromX - 7, 58);
   return \`M \${fromX} \${node.y} H \${midX} V 50 H \${endX}\`;
+}
+
+function threePosition(index: number, count: number) {
+  const angle = (index / Math.max(count, 1)) * Math.PI * 2 - Math.PI / 2;
+  const radius = index % 3 === 0 ? 270 : index % 3 === 1 ? 215 : 320;
+  const z = ((index % 5) - 2) * 32;
+  return {
+    x: Math.cos(angle) * radius,
+    y: Math.sin(angle) * radius,
+    z,
+    angle: (angle * 180) / Math.PI,
+    length: radius,
+  };
+}
+
+function threeNodeStyle(index: number, count: number, color: string): CSSProperties {
+  const position = threePosition(index, count);
+  return {
+    '--x': \`\${position.x}px\`,
+    '--y': \`\${position.y}px\`,
+    '--z': \`\${position.z}px\`,
+    '--color': color,
+  } as CSSProperties;
+}
+
+function threeLinkStyle(index: number, count: number): CSSProperties {
+  const position = threePosition(index, count);
+  return {
+    '--angle': \`\${position.angle}deg\`,
+    '--length': \`\${position.length}px\`,
+    '--z': \`\${position.z}px\`,
+  } as CSSProperties;
 }
 
 function primaryEvidence(service: RawService) {
@@ -377,7 +424,9 @@ export default function InternalServiceMapPage() {
     ...layout[index],
     color: palette[index % palette.length],
   })), []);
-  const [selectedId, setSelectedId] = useState<string | null>(nodes[0]?.id ?? null);
+  const [mode, setMode] = useState<'2d' | '3d'>('2d');
+  const [rotation, setRotation] = useState({ x: 58, z: -28 });
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [drafts, setDrafts] = useState<Record<string, DraftDetails>>(() => Object.fromEntries(nodes.map((service) => [
     service.id,
     {
@@ -402,42 +451,78 @@ export default function InternalServiceMapPage() {
         </div>
         <div className="top-actions">
           <span>{nodes.length} services</span>
-          <span className="mode-pill">2D</span>
+          <div className="mode-toggle" aria-label="View mode">
+            <button type="button" className={\`mode-button \${mode === '2d' ? 'is-active' : ''}\`} onClick={() => setMode('2d')}>2D</button>
+            <button type="button" className={\`mode-button \${mode === '3d' ? 'is-active' : ''}\`} onClick={() => setMode('3d')}>3D</button>
+          </div>
         </div>
       </header>
 
       <section className="map">
         <div className="intro">
           <strong>{graph.project?.name ?? 'Project'} infrastructure</strong>
-          <span>{selected ? \`Tracing \${selected.name}\` : 'Select a service to trace its dependencies'}</span>
+          <span>{selected ? \`Tracing \${selected.name}\` : mode === '3d' ? 'Rotate and explore your service relationships' : 'Select a service to trace its dependencies'}</span>
         </div>
-        <svg className="edges" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-          {nodes.map((service) => (
-            <path key={service.id} d={edgePath(service)} fill="none" stroke="rgba(103, 130, 118, 0.48)" strokeWidth="0.16" vectorEffect="non-scaling-stroke" />
-          ))}
-        </svg>
-        <div className="hub"><div className="hub-inner">⌘</div></div>
-        {nodes.map((service) => (
-          <button
-            type="button"
-            key={service.id}
-            className={\`service-node \${selectedId === service.id ? 'is-selected' : ''}\`}
-            style={{ left: \`\${service.x}%\`, top: \`\${service.y}%\` }}
-            onClick={() => setSelectedId(service.id)}
-          >
-            <ServiceLogo service={service} />
-            <div className="service-copy">
-              <strong>{service.name}</strong>
-              <span>{categoryLabel(service.category)}</span>
+        {mode === '2d' ? (
+          <>
+            <svg className="edges" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+              {nodes.map((service) => (
+                <path key={service.id} d={edgePath(service)} fill="none" stroke="rgba(103, 130, 118, 0.48)" strokeWidth="0.16" vectorEffect="non-scaling-stroke" />
+              ))}
+            </svg>
+            <div className="hub"><div className="hub-inner">⌘</div></div>
+            {nodes.map((service) => (
+              <button
+                type="button"
+                key={service.id}
+                className={\`service-node \${selectedId === service.id ? 'is-selected' : ''}\`}
+                style={{ left: \`\${service.x}%\`, top: \`\${service.y}%\` }}
+                onClick={() => setSelectedId(service.id)}
+              >
+                <ServiceLogo service={service} />
+                <div className="service-copy">
+                  <strong>{service.name}</strong>
+                  <span>{categoryLabel(service.category)}</span>
+                </div>
+                <i className={\`status-dot status-\${service.confidence}\`} />
+              </button>
+            ))}
+            <div className="legend">
+              <span><i style={{ background: '#4a7cff' }} />Cloud</span>
+              <span><i style={{ background: '#8be4b2' }} />Product</span>
+              <span><i style={{ background: '#65f0ad' }} />Active path</span>
             </div>
-            <i className={\`status-dot status-\${service.confidence}\`} />
-          </button>
-        ))}
-        <div className="legend">
-          <span><i style={{ background: '#4a7cff' }} />Cloud</span>
-          <span><i style={{ background: '#8be4b2' }} />Product</span>
-          <span><i style={{ background: '#65f0ad' }} />Active path</span>
-        </div>
+          </>
+        ) : (
+          <div className="three-scene" aria-label="3D service graph">
+            <div className="three-space" style={{ '--rx': \`\${rotation.x}deg\`, '--rz': \`\${rotation.z}deg\` } as CSSProperties}>
+              {nodes.map((service, index) => (
+                <span key={\`\${service.id}-link\`} className="three-link" style={threeLinkStyle(index, nodes.length)} />
+              ))}
+              <div className="three-core">⌘</div>
+              {nodes.map((service, index) => (
+                <button
+                  type="button"
+                  key={service.id}
+                  className={\`three-node \${selectedId === service.id ? 'is-selected' : ''}\`}
+                  style={threeNodeStyle(index, nodes.length, service.color)}
+                  onPointerMove={(event) => {
+                    if (event.buttons !== 1) return;
+                    setRotation((current) => ({
+                      x: Math.max(24, Math.min(72, current.x - event.movementY * 0.25)),
+                      z: current.z + event.movementX * 0.25,
+                    }));
+                  }}
+                  onClick={() => setSelectedId(service.id)}
+                >
+                  <span className="three-orb">{initials(service.name)}</span>
+                  <span>{service.name}</span>
+                </button>
+              ))}
+            </div>
+            <div className="three-hint">Drag to rotate / Scroll to zoom / Click a service</div>
+          </div>
+        )}
         <footer className="scan-foot">
           <div>Generated {new Date(graph.generatedAt).toLocaleString()}</div>
           <div>{nodes.length} services detected</div>
