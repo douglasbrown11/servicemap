@@ -75,20 +75,23 @@ function pageCss() {
     .mode-button.is-active { background: #276f53; color: #c9f9df; box-shadow: 0 0 18px rgba(101,240,173,0.16); }
     .map { position: relative; height: calc(100vh - 88px); min-height: 760px; background: radial-gradient(circle at 50% 52%, rgba(41, 96, 69, 0.22), transparent 24%), radial-gradient(circle at 1px 1px, rgba(88, 160, 120, 0.2) 1px, transparent 1px), #020806; background-size: auto, 28px 28px, auto; }
     .map.is-panning { cursor: grabbing; user-select: none; }
-    .map-plane { position: absolute; inset: 0; transform: translate3d(var(--pan-x, 0px), var(--pan-y, 0px), 0) scale(var(--zoom, 1)); transform-origin: 50% 50%; transition: transform 160ms ease; }
+    .map-plane { position: absolute; inset: 0; z-index: 20; transform: translate3d(var(--pan-x, 0px), var(--pan-y, 0px), 0) scale(var(--zoom, 1)); transform-origin: 50% 50%; transition: transform 160ms ease; }
     .map.is-panning .map-plane { transition: none; }
     .intro { position: absolute; left: 32px; top: 32px; z-index: 20; }
     .intro strong { display: block; color: #779286; font-size: 12px; letter-spacing: 0.22em; text-transform: uppercase; }
     .intro span { display: block; margin-top: 8px; color: #53665d; font-size: 14px; }
     .edges { position: absolute; inset: 0; z-index: 26; width: 100%; height: 100%; pointer-events: none; }
     .edge-line { transition: opacity 180ms ease, stroke 180ms ease; }
-    .edge-line.is-active { stroke: #65f0ad !important; stroke-width: 0.28; stroke-linecap: round; stroke-dasharray: 0.72 0.58; animation: servicemapDash 1.1s linear infinite; filter: drop-shadow(0 0 6px rgba(101,240,173,0.72)); opacity: 1; }
-    .edge-line.is-muted { opacity: 0.24; }
+    .edge-line.is-active { stroke: #65f0ad !important; stroke-width: 3px; stroke-linecap: round; stroke-dasharray: 10 8; animation: servicemapDash .74s linear infinite; filter: drop-shadow(0 0 9px rgba(101,240,173,0.9)) drop-shadow(0 0 18px rgba(101,240,173,0.45)); opacity: 1; }
+    .edge-line.is-muted { opacity: 0.12; }
     .hub { position: absolute; left: 50%; top: 50%; z-index: 20; width: 132px; height: 132px; transform: translate(-50%, -50%); border-radius: 24px; border: 1px solid #315c47; background: #09120d; display: grid; place-items: center; box-shadow: 0 0 0 9px rgba(79,183,128,0.12), 0 0 42px rgba(100,255,174,0.16); }
     .hub-inner { width: 92px; height: 92px; border-radius: 18px; background: #fbfbf7; color: #111612; display: grid; place-items: center; font-size: 40px; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.08); }
     .service-node { position: absolute; z-index: 10; width: 250px; height: 74px; transform: translate(-50%, -50%); display: flex; align-items: center; gap: 16px; padding: 0 16px; border-radius: 8px; border: 1px solid #274036; background: rgba(16,24,19,0.95); box-shadow: 0 0 0 1px rgba(140,255,190,0.05), 0 18px 44px rgba(0,0,0,0.38); }
     button.service-node { cursor: pointer; color: inherit; font: inherit; text-align: left; }
     .service-node:hover, .service-node.is-selected { border-color: #66efae; box-shadow: 0 0 0 2px rgba(101,240,173,0.42), 0 18px 44px rgba(0,0,0,0.38); }
+    .map.has-selection .service-node { opacity: 0.16; }
+    .map.has-selection .service-node.is-related { opacity: 0.48; }
+    .map.has-selection .service-node.is-selected { opacity: 1; }
     .service-node.is-selected { z-index: 27; }
     .logo { width: 48px; height: 48px; flex: 0 0 auto; border-radius: 8px; display: grid; place-items: center; overflow: hidden; color: #fff; font-weight: 700; }
     .logo img { width: 28px; height: 28px; object-fit: contain; filter: invert(1); }
@@ -107,7 +110,7 @@ function pageCss() {
     .fit-icon { display: inline-block; width: 15px; height: 15px; border: 2px solid currentColor; border-radius: 3px; }
     .scan-foot { position: absolute; right: 32px; bottom: 32px; z-index: 20; color: #53665d; text-align: right; font-size: 12px; line-height: 1.6; }
     .access-warning { position: absolute; left: 32px; right: 32px; bottom: 88px; z-index: 25; max-width: 720px; border: 1px solid rgba(241,200,91,0.42); border-radius: 8px; background: rgba(31,27,12,0.92); color: #f7daa0; padding: 12px 14px; font-size: 14px; line-height: 1.45; }
-    .drawer-scrim { position: absolute; inset: 0; z-index: 24; background: rgba(0,0,0,0.58); pointer-events: none; }
+    .drawer-scrim { position: absolute; inset: 0; z-index: 18; background: rgba(0,0,0,0.58); pointer-events: none; }
     .details-panel { position: absolute; right: 22px; top: 64px; bottom: 26px; z-index: 30; width: min(492px, calc(100vw - 44px)); overflow: hidden; border: 1px solid #294034; border-radius: 24px; background: linear-gradient(180deg, rgba(21,31,25,0.98), rgba(8,17,12,0.98)); box-shadow: 0 24px 80px rgba(0,0,0,0.52); }
     .details-head { display: flex; align-items: center; gap: 16px; padding: 26px 26px 22px; border-bottom: 1px solid rgba(255,255,255,0.08); }
     .details-title { min-width: 0; flex: 1; }
@@ -887,7 +890,7 @@ export default function InternalServiceMapPage() {
       </header>
 
       <section
-        className={\`map \${panStart ? 'is-panning' : ''}\`}
+        className={\`map \${panStart ? 'is-panning' : ''} \${selectedId ? 'has-selection' : ''}\`}
         onPointerDown={startPan}
         onPointerMove={movePan}
         onPointerUp={stopPan}
@@ -911,8 +914,8 @@ export default function InternalServiceMapPage() {
                     d={parent ? edgePathBetween(parent, service) : edgePath(service)}
                     fill="none"
                     stroke={isActive ? '#65f0ad' : 'rgba(103, 130, 118, 0.48)'}
-                    strokeWidth={isActive ? '0.28' : '0.16'}
-                    strokeDasharray={isActive ? '0.72 0.58' : undefined}
+                    strokeWidth={isActive ? '3' : '0.16'}
+                    strokeDasharray={isActive ? '10 8' : undefined}
                     strokeLinecap={isActive ? 'round' : undefined}
                     vectorEffect="non-scaling-stroke"
                   />
@@ -920,11 +923,13 @@ export default function InternalServiceMapPage() {
                 })}
               </svg>
               <div className="hub"><div className="hub-inner"><ProjectMark /></div></div>
-              {nodes.map((service) => (
+              {nodes.map((service) => {
+                const isRelated = selectedId === service.parentId || selected?.parentId === service.id;
+                return (
                 <button
                   type="button"
                   key={service.id}
-                  className={\`service-node \${selectedId === service.id ? 'is-selected' : ''}\`}
+                  className={\`service-node \${selectedId === service.id ? 'is-selected' : ''} \${isRelated ? 'is-related' : ''}\`}
                   style={{ left: \`\${service.x}%\`, top: \`\${service.y}%\` }}
                   onClick={() => setSelectedId(service.id)}
                 >
@@ -935,7 +940,8 @@ export default function InternalServiceMapPage() {
                   </div>
                   <i className={\`status-dot status-\${service.confidence}\`} />
                 </button>
-              ))}
+                );
+              })}
             </div>
             <div className="legend">
               <span><i style={{ background: '#4a7cff' }} />Cloud</span>
