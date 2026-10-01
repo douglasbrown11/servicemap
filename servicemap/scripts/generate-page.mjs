@@ -64,6 +64,7 @@ function pageCss() {
     .mode-button { min-height: 36px; border: 0; border-radius: 8px; background: transparent; color: #789086; padding: 0 12px; cursor: pointer; font: inherit; font-weight: 800; }
     .mode-button.is-active { background: #276f53; color: #c9f9df; box-shadow: 0 0 18px rgba(101,240,173,0.16); }
     .map { position: relative; height: calc(100vh - 88px); min-height: 760px; background: radial-gradient(circle at 50% 52%, rgba(41, 96, 69, 0.22), transparent 24%), radial-gradient(circle at 1px 1px, rgba(88, 160, 120, 0.2) 1px, transparent 1px), #020806; background-size: auto, 28px 28px, auto; }
+    .map-plane { position: absolute; inset: 0; transform: scale(var(--zoom, 1)); transform-origin: 50% 50%; transition: transform 160ms ease; }
     .intro { position: absolute; left: 32px; top: 32px; z-index: 20; }
     .intro strong { display: block; color: #779286; font-size: 12px; letter-spacing: 0.22em; text-transform: uppercase; }
     .intro span { display: block; margin-top: 8px; color: #53665d; font-size: 14px; }
@@ -87,6 +88,11 @@ function pageCss() {
     .status-medium, .status-low { color: #f1c85b; background: #f1c85b; }
     .legend { position: absolute; left: 50%; bottom: 32px; z-index: 20; transform: translateX(-50%); display: flex; align-items: center; gap: 20px; border: 1px solid rgba(255,255,255,0.1); border-radius: 999px; background: rgba(11,20,15,0.9); color: #789086; padding: 8px 20px; font-size: 12px; }
     .legend i { display: inline-block; width: 8px; height: 8px; margin-right: 8px; border-radius: 999px; }
+    .zoom-controls { position: absolute; left: 28px; bottom: 26px; z-index: 29; display: grid; overflow: hidden; border: 1px solid rgba(255,255,255,0.12); border-radius: 10px; background: rgba(7,14,10,0.9); box-shadow: 0 12px 32px rgba(0,0,0,0.34); }
+    .zoom-button { width: 38px; height: 36px; border: 0; border-bottom: 1px solid rgba(255,255,255,0.1); background: transparent; color: #a8bbb2; cursor: pointer; font: inherit; font-size: 22px; line-height: 1; }
+    .zoom-button:last-child { border-bottom: 0; font-size: 18px; }
+    .zoom-button:hover { background: rgba(101,240,173,0.1); color: #d8f8e8; }
+    .fit-icon { display: inline-block; width: 15px; height: 15px; border: 2px solid currentColor; border-radius: 3px; }
     .scan-foot { position: absolute; right: 32px; bottom: 32px; z-index: 20; color: #53665d; text-align: right; font-size: 12px; line-height: 1.6; }
     .access-warning { position: absolute; left: 32px; right: 32px; bottom: 88px; z-index: 25; max-width: 720px; border: 1px solid rgba(241,200,91,0.42); border-radius: 8px; background: rgba(31,27,12,0.92); color: #f7daa0; padding: 12px 14px; font-size: 14px; line-height: 1.45; }
     .drawer-scrim { position: absolute; inset: 0; z-index: 24; background: rgba(0,0,0,0.58); pointer-events: none; }
@@ -116,7 +122,7 @@ function pageCss() {
     .helper-text { margin: 10px 0 0; color: #687c72; font-size: 12px; line-height: 1.45; }
     .three-scene { position: absolute; inset: 0; perspective: 1200px; overflow: hidden; cursor: grab; touch-action: none; }
     .three-scene:active { cursor: grabbing; }
-    .three-space { position: absolute; left: 50%; top: 52%; width: min(1040px, 78vw); height: min(700px, 64vh); transform-style: preserve-3d; transform: translate(-50%, -50%) rotateX(var(--rx, 14deg)) rotateZ(var(--rz, 0deg)); transition: transform 140ms ease; pointer-events: none; }
+    .three-space { position: absolute; left: 50%; top: 52%; width: min(1040px, 78vw); height: min(700px, 64vh); transform-style: preserve-3d; transform: translate(-50%, -50%) scale(var(--zoom, 1)) rotateX(var(--rx, 14deg)) rotateZ(var(--rz, 0deg)); transition: transform 140ms ease; pointer-events: none; }
     .three-link { position: absolute; left: 50%; top: 50%; width: var(--length); height: 1px; transform-origin: 0 0; transform: rotateZ(var(--angle)); background: linear-gradient(90deg, rgba(101,240,173,0.28), rgba(101,240,173,0.05)); opacity: 0.72; }
     .three-link.is-active { height: 2px; background: repeating-linear-gradient(90deg, #65f0ad 0 8px, transparent 8px 14px); box-shadow: 0 0 14px rgba(101,240,173,0.68); animation: servicemapLinkFlow 1s linear infinite; }
     .three-node { position: absolute; left: 50%; top: 50%; width: 124px; min-height: 72px; transform: translate3d(var(--x), var(--y), var(--z)) translate(-50%, -50%) scale(var(--scale)); border: 0; border-radius: 999px; background: transparent; color: #eaf8f1; cursor: pointer; font: inherit; text-align: center; pointer-events: auto; }
@@ -476,6 +482,7 @@ export default function InternalServiceMapPage() {
   })), []);
   const [mode, setMode] = useState<'2d' | '3d'>('2d');
   const [rotation, setRotation] = useState({ x: 14, z: 0 });
+  const [zoom, setZoom] = useState(1);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [drafts, setDrafts] = useState<Record<string, DraftDetails>>(() => Object.fromEntries(nodes.map((service) => [
     service.id,
@@ -487,6 +494,9 @@ export default function InternalServiceMapPage() {
     },
   ])));
   const selected = nodes.find((service) => service.id === selectedId) ?? null;
+  const zoomIn = () => setZoom((current) => Math.min(1.45, Number((current + 0.12).toFixed(2))));
+  const zoomOut = () => setZoom((current) => Math.max(0.7, Number((current - 0.12).toFixed(2))));
+  const resetZoom = () => setZoom(1);
 
   return (
     <main className="servicemap-shell">
@@ -515,38 +525,40 @@ export default function InternalServiceMapPage() {
         </div>
         {mode === '2d' ? (
           <>
-            <svg className="edges" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+            <div className="map-plane" style={{ '--zoom': zoom } as CSSProperties}>
+              <svg className="edges" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+                {nodes.map((service) => (
+                  <path
+                    key={service.id}
+                    className={\`edge-line \${selectedId === service.id ? 'is-active' : selectedId ? 'is-muted' : ''}\`}
+                    d={edgePath(service)}
+                    fill="none"
+                    stroke={selectedId === service.id ? '#65f0ad' : 'rgba(103, 130, 118, 0.48)'}
+                    strokeWidth={selectedId === service.id ? '0.28' : '0.16'}
+                    strokeDasharray={selectedId === service.id ? '0.72 0.58' : undefined}
+                    strokeLinecap={selectedId === service.id ? 'round' : undefined}
+                    vectorEffect="non-scaling-stroke"
+                  />
+                ))}
+              </svg>
+              <div className="hub"><div className="hub-inner"><ProjectMark /></div></div>
               {nodes.map((service) => (
-                <path
+                <button
+                  type="button"
                   key={service.id}
-                  className={\`edge-line \${selectedId === service.id ? 'is-active' : selectedId ? 'is-muted' : ''}\`}
-                  d={edgePath(service)}
-                  fill="none"
-                  stroke={selectedId === service.id ? '#65f0ad' : 'rgba(103, 130, 118, 0.48)'}
-                  strokeWidth={selectedId === service.id ? '0.28' : '0.16'}
-                  strokeDasharray={selectedId === service.id ? '0.72 0.58' : undefined}
-                  strokeLinecap={selectedId === service.id ? 'round' : undefined}
-                  vectorEffect="non-scaling-stroke"
-                />
+                  className={\`service-node \${selectedId === service.id ? 'is-selected' : ''}\`}
+                  style={{ left: \`\${service.x}%\`, top: \`\${service.y}%\` }}
+                  onClick={() => setSelectedId(service.id)}
+                >
+                  <ServiceLogo service={service} />
+                  <div className="service-copy">
+                    <strong>{service.name}</strong>
+                    <span>{categoryLabel(service.category)}</span>
+                  </div>
+                  <i className={\`status-dot status-\${service.confidence}\`} />
+                </button>
               ))}
-            </svg>
-            <div className="hub"><div className="hub-inner"><ProjectMark /></div></div>
-            {nodes.map((service) => (
-              <button
-                type="button"
-                key={service.id}
-                className={\`service-node \${selectedId === service.id ? 'is-selected' : ''}\`}
-                style={{ left: \`\${service.x}%\`, top: \`\${service.y}%\` }}
-                onClick={() => setSelectedId(service.id)}
-              >
-                <ServiceLogo service={service} />
-                <div className="service-copy">
-                  <strong>{service.name}</strong>
-                  <span>{categoryLabel(service.category)}</span>
-                </div>
-                <i className={\`status-dot status-\${service.confidence}\`} />
-              </button>
-            ))}
+            </div>
             <div className="legend">
               <span><i style={{ background: '#4a7cff' }} />Cloud</span>
               <span><i style={{ background: '#8be4b2' }} />Product</span>
@@ -555,7 +567,7 @@ export default function InternalServiceMapPage() {
           </>
         ) : (
           <div className="three-scene" aria-label="3D service graph">
-            <div className="three-space" style={{ '--rx': \`\${rotation.x}deg\`, '--rz': \`\${rotation.z}deg\` } as CSSProperties}>
+            <div className="three-space" style={{ '--rx': \`\${rotation.x}deg\`, '--rz': \`\${rotation.z}deg\`, '--zoom': zoom } as CSSProperties}>
               {nodes.map((service, index) => (
                 <span
                   key={\`\${service.id}-link\`}
@@ -587,6 +599,11 @@ export default function InternalServiceMapPage() {
             <div className="three-hint">Drag a service to rotate / Click for details</div>
           </div>
         )}
+        <div className="zoom-controls" aria-label="Map zoom controls">
+          <button type="button" className="zoom-button" onClick={zoomIn} aria-label="Zoom in">+</button>
+          <button type="button" className="zoom-button" onClick={zoomOut} aria-label="Zoom out">−</button>
+          <button type="button" className="zoom-button" onClick={resetZoom} aria-label="Reset zoom"><span className="fit-icon" aria-hidden="true" /></button>
+        </div>
         <footer className="scan-foot">
           <div>Generated {new Date(graph.generatedAt).toLocaleString()}</div>
           <div>{nodes.length} services detected</div>
