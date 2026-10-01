@@ -67,12 +67,16 @@ function pageCss() {
     .intro { position: absolute; left: 32px; top: 32px; z-index: 20; }
     .intro strong { display: block; color: #779286; font-size: 12px; letter-spacing: 0.22em; text-transform: uppercase; }
     .intro span { display: block; margin-top: 8px; color: #53665d; font-size: 14px; }
-    .edges { position: absolute; inset: 0; width: 100%; height: 100%; }
+    .edges { position: absolute; inset: 0; z-index: 26; width: 100%; height: 100%; pointer-events: none; }
+    .edge-line { transition: opacity 180ms ease, stroke 180ms ease; }
+    .edge-line.is-active { stroke: #65f0ad !important; stroke-width: 0.28; stroke-linecap: round; stroke-dasharray: 0.72 0.58; animation: servicemapDash 1.1s linear infinite; filter: drop-shadow(0 0 6px rgba(101,240,173,0.72)); opacity: 1; }
+    .edge-line.is-muted { opacity: 0.24; }
     .hub { position: absolute; left: 50%; top: 50%; z-index: 20; width: 132px; height: 132px; transform: translate(-50%, -50%); border-radius: 24px; border: 1px solid #315c47; background: #09120d; display: grid; place-items: center; box-shadow: 0 0 0 9px rgba(79,183,128,0.12), 0 0 42px rgba(100,255,174,0.16); }
     .hub-inner { width: 92px; height: 92px; border-radius: 18px; background: #fbfbf7; color: #111612; display: grid; place-items: center; font-size: 40px; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.08); }
     .service-node { position: absolute; z-index: 10; width: 250px; height: 74px; transform: translate(-50%, -50%); display: flex; align-items: center; gap: 16px; padding: 0 16px; border-radius: 8px; border: 1px solid #274036; background: rgba(16,24,19,0.95); box-shadow: 0 0 0 1px rgba(140,255,190,0.05), 0 18px 44px rgba(0,0,0,0.38); }
     button.service-node { cursor: pointer; color: inherit; font: inherit; text-align: left; }
     .service-node:hover, .service-node.is-selected { border-color: #66efae; box-shadow: 0 0 0 2px rgba(101,240,173,0.42), 0 18px 44px rgba(0,0,0,0.38); }
+    .service-node.is-selected { z-index: 27; }
     .logo { width: 48px; height: 48px; flex: 0 0 auto; border-radius: 8px; display: grid; place-items: center; overflow: hidden; color: #fff; font-weight: 700; }
     .logo img { width: 28px; height: 28px; object-fit: contain; filter: invert(1); }
     .service-copy { min-width: 0; }
@@ -114,12 +118,15 @@ function pageCss() {
     .three-scene:active { cursor: grabbing; }
     .three-space { position: absolute; left: 50%; top: 50%; width: 620px; height: 620px; transform-style: preserve-3d; transform: translate(-50%, -50%) rotateX(var(--rx, 58deg)) rotateZ(var(--rz, -28deg)); transition: transform 140ms ease; pointer-events: none; }
     .three-link { position: absolute; left: 50%; top: 50%; width: var(--length); height: 1px; transform-origin: 0 0; transform: translate3d(0, 0, 0) rotateZ(var(--angle)) translateY(var(--z)); background: linear-gradient(90deg, rgba(101,240,173,0.42), rgba(101,240,173,0.05)); }
+    .three-link.is-active { height: 2px; background: repeating-linear-gradient(90deg, #65f0ad 0 8px, transparent 8px 14px); box-shadow: 0 0 14px rgba(101,240,173,0.68); animation: servicemapLinkFlow 1s linear infinite; }
     .three-node { position: absolute; left: 50%; top: 50%; width: 82px; height: 82px; transform: translate3d(var(--x), var(--y), var(--z)) translate(-50%, -50%) rotateZ(28deg) rotateX(-58deg); border: 0; border-radius: 999px; background: transparent; color: #eaf8f1; cursor: pointer; font: inherit; text-align: center; pointer-events: auto; }
     .three-orb { display: grid; place-items: center; width: 38px; height: 38px; margin: 0 auto 7px; border-radius: 999px; background: var(--color); color: #fff; box-shadow: 0 0 28px color-mix(in srgb, var(--color), transparent 44%); font-size: 12px; font-weight: 900; }
     .three-node span { display: block; font-size: 10px; line-height: 1.15; text-shadow: 0 2px 8px #000; }
     .three-node.is-selected .three-orb { outline: 2px solid #65f0ad; outline-offset: 4px; }
     .three-core { position: absolute; left: 50%; top: 50%; display: grid; place-items: center; width: 72px; height: 72px; transform: translate(-50%, -50%); border-radius: 999px; background: #f7faf7; color: #101611; font-size: 30px; box-shadow: 0 0 0 10px rgba(101,240,173,0.14), 0 0 46px rgba(101,240,173,0.22); }
     .three-hint { position: absolute; left: 50%; bottom: 30px; z-index: 21; transform: translateX(-50%); border: 1px solid rgba(255,255,255,0.1); border-radius: 999px; background: rgba(11,20,15,0.9); color: #789086; padding: 10px 18px; font-size: 12px; }
+    @keyframes servicemapDash { to { stroke-dashoffset: -1.3; } }
+    @keyframes servicemapLinkFlow { to { background-position: 22px 0; } }
     @media (max-width: 920px) {
       .map { min-height: 1120px; }
       .service-node { width: 220px; }
@@ -483,7 +490,17 @@ export default function InternalServiceMapPage() {
           <>
             <svg className="edges" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
               {nodes.map((service) => (
-                <path key={service.id} d={edgePath(service)} fill="none" stroke="rgba(103, 130, 118, 0.48)" strokeWidth="0.16" vectorEffect="non-scaling-stroke" />
+                <path
+                  key={service.id}
+                  className={\`edge-line \${selectedId === service.id ? 'is-active' : selectedId ? 'is-muted' : ''}\`}
+                  d={edgePath(service)}
+                  fill="none"
+                  stroke={selectedId === service.id ? '#65f0ad' : 'rgba(103, 130, 118, 0.48)'}
+                  strokeWidth={selectedId === service.id ? '0.28' : '0.16'}
+                  strokeDasharray={selectedId === service.id ? '0.72 0.58' : undefined}
+                  strokeLinecap={selectedId === service.id ? 'round' : undefined}
+                  vectorEffect="non-scaling-stroke"
+                />
               ))}
             </svg>
             <div className="hub"><div className="hub-inner"><ProjectMark /></div></div>
@@ -513,7 +530,11 @@ export default function InternalServiceMapPage() {
           <div className="three-scene" aria-label="3D service graph">
             <div className="three-space" style={{ '--rx': \`\${rotation.x}deg\`, '--rz': \`\${rotation.z}deg\` } as CSSProperties}>
               {nodes.map((service, index) => (
-                <span key={\`\${service.id}-link\`} className="three-link" style={threeLinkStyle(index, nodes.length)} />
+                <span
+                  key={\`\${service.id}-link\`}
+                  className={\`three-link \${selectedId === service.id ? 'is-active' : ''}\`}
+                  style={threeLinkStyle(index, nodes.length)}
+                />
               ))}
               <div className="three-core"><ProjectMark /></div>
               {nodes.map((service, index) => (
