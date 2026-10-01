@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { existsSync } from 'node:fs';
 import { copyFile, mkdir, readFile, writeFile } from 'node:fs/promises';
+import { spawn } from 'node:child_process';
 import { dirname, extname, isAbsolute, join, resolve } from 'node:path';
 
 const defaultInput = '.servicemap/internal-servicemap.json';
@@ -19,6 +20,14 @@ function parseArgs() {
 
 async function readJson(path) {
   return JSON.parse(await readFile(path, 'utf8'));
+}
+
+async function readJsonOrNull(path) {
+  try {
+    return JSON.parse(await readFile(path, 'utf8'));
+  } catch {
+    return null;
+  }
 }
 
 function routeFor(root, framework) {
@@ -120,17 +129,19 @@ function pageCss() {
     .delete-button { color: #ff6b57; background: transparent; font-weight: 800; }
     .save-button { min-height: 48px; border-radius: 10px; background: #287a5a; color: #effbf5; padding: 0 18px; font-weight: 800; box-shadow: 0 10px 30px rgba(54,180,126,0.18); }
     .helper-text { margin: 10px 0 0; color: #687c72; font-size: 12px; line-height: 1.45; }
-    .three-scene { position: absolute; inset: 0; perspective: 1200px; overflow: hidden; cursor: grab; touch-action: none; }
-    .three-scene:active { cursor: grabbing; }
-    .three-space { position: absolute; left: 50%; top: 52%; width: min(1040px, 78vw); height: min(700px, 64vh); transform-style: preserve-3d; transform: translate(-50%, -50%) scale(var(--zoom, 1)) rotateX(var(--rx, 14deg)) rotateZ(var(--rz, 0deg)); transition: transform 140ms ease; pointer-events: none; }
-    .three-link { position: absolute; left: 50%; top: 50%; width: var(--length); height: 1px; transform-origin: 0 0; transform: rotateZ(var(--angle)); background: linear-gradient(90deg, rgba(101,240,173,0.28), rgba(101,240,173,0.05)); opacity: 0.72; }
-    .three-link.is-active { height: 2px; background: repeating-linear-gradient(90deg, #65f0ad 0 8px, transparent 8px 14px); box-shadow: 0 0 14px rgba(101,240,173,0.68); animation: servicemapLinkFlow 1s linear infinite; }
-    .three-node { position: absolute; left: 50%; top: 50%; width: 124px; min-height: 72px; transform: translate3d(var(--x), var(--y), var(--z)) translate(-50%, -50%) scale(var(--scale)); border: 0; border-radius: 999px; background: transparent; color: #eaf8f1; cursor: pointer; font: inherit; text-align: center; pointer-events: auto; }
-    .three-orb { display: grid; place-items: center; width: 30px; height: 30px; margin: 0 auto 6px; border-radius: 999px; background: var(--color); color: #fff; box-shadow: 0 0 28px color-mix(in srgb, var(--color), transparent 46%); font-size: 10px; font-weight: 900; }
-    .three-node span { display: block; max-width: 124px; margin: 0 auto; color: #e5f1ea; font-size: 10px; font-weight: 800; line-height: 1.12; text-shadow: 0 2px 8px #000; }
-    .three-node.is-selected .three-orb { outline: 2px solid #65f0ad; outline-offset: 4px; box-shadow: 0 0 34px rgba(101,240,173,0.72); }
-    .three-core { position: absolute; left: 50%; top: 50%; display: grid; place-items: center; width: 54px; height: 54px; transform: translate(-50%, -50%); border-radius: 999px; background: #f7faf7; color: #101611; font-size: 22px; box-shadow: 0 0 0 9px rgba(101,240,173,0.12), 0 0 46px rgba(101,240,173,0.2); }
-    .three-hint { position: absolute; left: 50%; bottom: 30px; z-index: 21; transform: translateX(-50%); border: 1px solid rgba(255,255,255,0.1); border-radius: 999px; background: rgba(11,20,15,0.9); color: #789086; padding: 10px 18px; font-size: 12px; }
+    .graph-3d { position: absolute; inset: 0; overflow: hidden; }
+    .graph-3d::before { content: ''; position: absolute; z-index: 1; inset: 0; pointer-events: none; background: radial-gradient(circle at 50% 50%, transparent 38%, rgba(2,5,4,.46) 100%); }
+    .graph-3d canvas { display: block; cursor: grab; }
+    .graph-3d canvas:active { cursor: grabbing; }
+    .graph-3d__help, .graph-3d__focus { position: absolute; z-index: 3; bottom: 20px; border: 1px solid rgba(255,255,255,.07); background: rgba(9,14,11,.74); color: #718078; font-size: 8px; backdrop-filter: blur(14px); pointer-events: none; }
+    .graph-3d__help { left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 999px; white-space: nowrap; }
+    .graph-3d__help span { width: 3px; height: 3px; border-radius: 50%; background: #4a5a52; }
+    .graph-3d__focus { left: 22px; padding: 8px 10px; border-radius: 8px; color: #91bba7; }
+    .graph-3d__zoom { position: absolute; z-index: 4; right: 22px; bottom: 20px; display: flex; flex-direction: column; overflow: hidden; border: 1px solid rgba(255,255,255,.1); border-radius: 10px; background: rgba(9,14,11,.82); box-shadow: 0 10px 28px rgba(0,0,0,.3); backdrop-filter: blur(14px); }
+    .graph-3d__zoom button { width: 36px; height: 34px; padding: 0; border: 0; display: grid; place-items: center; background: transparent; color: #aebbb4; cursor: pointer; transition: color .18s ease, background .18s ease; font-size: 20px; }
+    .graph-3d__zoom button + button { border-top: 1px solid rgba(255,255,255,.08); }
+    .graph-3d__zoom button:hover { color: #fff; background: rgba(255,255,255,.08); }
+    .graph-3d__loading { position: absolute; inset: 0; display: grid; place-items: center; color: #75857c; font-size: 9px; }
     @keyframes servicemapDash { to { stroke-dashoffset: -1.3; } }
     @keyframes servicemapLinkFlow { to { background-position: 22px 0; } }
     @media (max-width: 920px) {
@@ -251,7 +262,11 @@ ${htmlBody(graph)}
 function interactiveTsxPage(graph) {
   return `'use client';
 
-import { useMemo, useState, type CSSProperties } from 'react';
+import dynamic from 'next/dynamic';
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import type { ForceGraphMethods, NodeObject } from 'react-force-graph-3d';
+import * as THREE from 'three';
+import SpriteText from 'three-spritetext';
 
 const css = ${JSON.stringify(pageCss())};
 type Evidence = { type?: string; value?: string; confidence?: string };
@@ -259,10 +274,15 @@ type RawService = { id: string; name: string; key?: string; category?: string; c
 type ServiceNode = RawService & { color: string; x: number; y: number };
 type DraftDetails = { subtitle: string; use: string; account: string; passwordLocation: string };
 type ServiceLink = { label: string; url: string };
+type GraphNode3D = { id: string; name: string; category: string; color: string; iconUrl?: string | null; monogram: string; isProduct: boolean; x?: number; y?: number; z?: number };
+type GraphLink3D = { id: string; source: string | GraphNode3D; target: string | GraphNode3D; label: string };
+type AdjustableForce = { strength?: (value: number) => unknown; distance?: (value: number) => unknown };
+type OrbitControlsLike = { target?: THREE.Vector3 };
 
 const graph = ${JSON.stringify(graph)} as { generatedAt: string; project?: { name?: string; logoUrl?: string }; services?: RawService[] };
 const palette = ${JSON.stringify(palette)} as string[];
 const layout = ${JSON.stringify(layout)} as Array<{ x: number; y: number }>;
+const ForceGraph3D = dynamic(() => import('react-force-graph-3d'), { ssr: false });
 
 function categoryLabel(value?: string | null) {
   return String(value ?? 'service').replace(/-/g, ' ');
@@ -280,68 +300,85 @@ function edgePath(node: ServiceNode) {
   return \`M \${fromX} \${node.y} H \${midX} V 50 H \${endX}\`;
 }
 
-function threePosition(index: number) {
-  const constellation = [
-    { x: 0, y: -240, z: 46 },
-    { x: 230, y: -135, z: 24 },
-    { x: -220, y: -120, z: 10 },
-    { x: 165, y: 88, z: 16 },
-    { x: -170, y: 118, z: -10 },
-    { x: 365, y: 42, z: 34 },
-    { x: -360, y: 52, z: -18 },
-    { x: 265, y: 250, z: -32 },
-    { x: -265, y: -270, z: 28 },
-    { x: 430, y: -190, z: -20 },
-    { x: -430, y: 232, z: 22 },
-    { x: 40, y: 312, z: -38 },
-    { x: -60, y: -350, z: 18 },
-    { x: 520, y: 126, z: 8 },
-    { x: -520, y: -36, z: -26 },
-    { x: 350, y: -330, z: 30 },
-  ];
-  const fallbackAngle = index * 2.399963229728653;
-  const fallbackRadius = 250 + (index % 5) * 52;
-  const point = constellation[index] ?? {
-    x: Math.cos(fallbackAngle) * fallbackRadius,
-    y: Math.sin(fallbackAngle) * fallbackRadius * 0.72,
-    z: ((index % 7) - 3) * 14,
-  };
-  const angle = Math.atan2(point.y, point.x);
-  const length = Math.hypot(point.x, point.y);
-  const scale = 0.74 + Math.max(-36, Math.min(48, point.z)) / 220;
-  return {
-    x: point.x,
-    y: point.y,
-    z: point.z,
-    angle: (angle * 180) / Math.PI,
-    length,
-    scale,
-  };
-}
-
-function threeNodeStyle(index: number, color: string): CSSProperties {
-  const position = threePosition(index);
-  return {
-    '--x': \`\${position.x}px\`,
-    '--y': \`\${position.y}px\`,
-    '--z': \`\${position.z}px\`,
-    '--scale': String(position.scale),
-    '--color': color,
-  } as CSSProperties;
-}
-
-function threeLinkStyle(index: number): CSSProperties {
-  const position = threePosition(index);
-  return {
-    '--angle': \`\${position.angle}deg\`,
-    '--length': \`\${position.length}px\`,
-    '--z': \`\${position.z}px\`,
-  } as CSSProperties;
-}
-
 function primaryEvidence(service: RawService) {
   const evidence = service.evidence?.[0];
   return evidence ? \`\${evidence.type}: \${evidence.value}\` : 'No evidence captured yet.';
+}
+
+function endpointId(endpoint: string | number | GraphNode3D) {
+  return typeof endpoint === 'object' ? endpoint.id : String(endpoint);
+}
+
+function graphNode(node: NodeObject) {
+  return node as GraphNode3D;
+}
+
+function graphLink(link: GraphLink3D) {
+  return link;
+}
+
+function iconObject(node: GraphNode3D, selected: boolean) {
+  const group = new THREE.Group();
+  const radius = node.isProduct ? 10 : 7;
+  const shell = new THREE.Mesh(
+    new THREE.SphereGeometry(radius, 32, 32),
+    new THREE.MeshStandardMaterial({
+      color: new THREE.Color(node.color),
+      emissive: new THREE.Color(node.color),
+      emissiveIntensity: selected ? 0.65 : 0.23,
+      metalness: 0.18,
+      roughness: 0.48,
+    }),
+  );
+  group.add(shell);
+
+  const halo = new THREE.Mesh(
+    new THREE.SphereGeometry(radius + (selected ? 2.2 : 1.25), 24, 24),
+    new THREE.MeshBasicMaterial({ color: selected ? '#9ff0cb' : node.color, transparent: true, opacity: selected ? 0.18 : 0.07, side: THREE.BackSide }),
+  );
+  group.add(halo);
+
+  const fallback = new SpriteText(node.monogram.slice(0, 3));
+  fallback.color = '#ffffff';
+  fallback.textHeight = node.isProduct ? 4.2 : 3.2;
+  fallback.fontSize = 180;
+  fallback.fontWeight = '700';
+  fallback.renderOrder = 10;
+  fallback.material.depthTest = false;
+  fallback.material.depthWrite = false;
+  group.add(fallback);
+
+  if (node.iconUrl) {
+    new THREE.TextureLoader().load(node.iconUrl, (texture) => {
+      texture.colorSpace = THREE.SRGBColorSpace;
+      texture.anisotropy = 16;
+      texture.minFilter = THREE.LinearMipmapLinearFilter;
+      texture.magFilter = THREE.LinearFilter;
+      texture.generateMipmaps = true;
+      texture.needsUpdate = true;
+      const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, transparent: true, depthTest: false, depthWrite: false, alphaTest: 0.015 }));
+      const size = node.isProduct ? 12 : 8.5;
+      sprite.scale.set(size, size, 1);
+      sprite.renderOrder = 10;
+      group.add(sprite);
+      fallback.visible = false;
+    });
+  }
+
+  const label = new SpriteText(node.name);
+  label.color = selected ? '#b9f6da' : '#dfeae4';
+  label.textHeight = selected ? 5.4 : 4.7;
+  label.fontSize = 220;
+  label.fontWeight = selected ? '700' : '600';
+  label.backgroundColor = 'rgba(5, 8, 7, .72)';
+  label.padding = 1.5;
+  label.borderRadius = 2;
+  label.position.y = -(radius + 6.8);
+  label.renderOrder = 11;
+  label.material.depthTest = false;
+  label.material.depthWrite = false;
+  group.add(label);
+  return group;
 }
 
 function serviceLinks(service: RawService): ServiceLink[] {
@@ -474,6 +511,170 @@ function DetailsPanel({
   );
 }
 
+function ServiceGraph3D({
+  nodes,
+  selectedId,
+  onSelect,
+}: {
+  nodes: ServiceNode[];
+  selectedId: string | null;
+  onSelect: (id: string | null) => void;
+}) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const graphRef = useRef<ForceGraphMethods<GraphNode3D, GraphLink3D> | undefined>(undefined);
+  const [size, setSize] = useState({ width: 900, height: 700 });
+  const hasFramed = useRef(false);
+  const graphData = useMemo(() => ({
+    nodes: [{
+      id: 'project',
+      name: graph.project?.name ?? 'Project',
+      category: 'product',
+      color: '#8be4b2',
+      iconUrl: graph.project?.logoUrl,
+      monogram: initials(graph.project?.name ?? 'Project'),
+      isProduct: true,
+    }, ...nodes.map((node): GraphNode3D => ({
+      id: node.id,
+      name: node.name,
+      category: categoryLabel(node.category),
+      color: node.color,
+      iconUrl: node.iconUrl,
+      monogram: initials(node.name),
+      isProduct: node.category === 'product',
+    }))],
+    links: nodes.map((node): GraphLink3D => ({
+      id: \`project-\${node.id}\`,
+      source: 'project',
+      target: node.id,
+      label: node.confidence === 'high' ? 'uses' : 'may use',
+    })),
+  }), [nodes]);
+
+  const activeIds = useMemo(() => {
+    const ids = new Set<string>();
+    if (!selectedId) return ids;
+    ids.add(selectedId);
+    graphData.links.forEach((link) => {
+      const source = endpointId(link.source);
+      const target = endpointId(link.target);
+      if (source === selectedId) ids.add(target);
+      if (target === selectedId) ids.add(source);
+    });
+    return ids;
+  }, [graphData.links, selectedId]);
+
+  useEffect(() => {
+    const element = containerRef.current;
+    if (!element) return;
+    const observer = new ResizeObserver(([entry]) => {
+      setSize({ width: Math.max(1, entry.contentRect.width), height: Math.max(1, entry.contentRect.height) });
+    });
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    const graphInstance = graphRef.current;
+    if (!graphInstance) return;
+    const charge = graphInstance.d3Force('charge') as AdjustableForce | undefined;
+    const link = graphInstance.d3Force('link') as AdjustableForce | undefined;
+    graphInstance.renderer().setPixelRatio(Math.min(window.devicePixelRatio * 1.5, 3));
+    charge?.strength?.(-230);
+    link?.distance?.(92);
+    graphInstance.d3ReheatSimulation();
+    hasFramed.current = false;
+  }, [graphData.nodes.length, graphData.links.length]);
+
+  const focusNode = useCallback((node: NodeObject) => {
+    const serviceNode = graphNode(node);
+    onSelect(serviceNode.id);
+    if (serviceNode.x === undefined || serviceNode.y === undefined || serviceNode.z === undefined) return;
+    const distance = Math.hypot(serviceNode.x, serviceNode.y, serviceNode.z) || 1;
+    const ratio = 1 + 105 / distance;
+    graphRef.current?.cameraPosition(
+      { x: serviceNode.x * ratio, y: serviceNode.y * ratio, z: serviceNode.z * ratio },
+      { x: serviceNode.x, y: serviceNode.y, z: serviceNode.z },
+      850,
+    );
+  }, [onSelect]);
+
+  const zoom = useCallback((factor: number) => {
+    const graphInstance = graphRef.current;
+    if (!graphInstance) return;
+    const camera = graphInstance.camera();
+    const controls = graphInstance.controls() as OrbitControlsLike;
+    const target = controls.target?.clone() ?? new THREE.Vector3();
+    const offset = camera.position.clone().sub(target);
+    const currentDistance = offset.length();
+    if (currentDistance === 0) return;
+    const nextDistance = THREE.MathUtils.clamp(currentDistance * factor, 35, 1200);
+    const nextPosition = target.clone().add(offset.multiplyScalar(nextDistance / currentDistance));
+    graphInstance.cameraPosition(nextPosition, target, 240);
+  }, []);
+
+  return (
+    <div className="graph-3d" ref={containerRef}>
+      <ForceGraph3D
+        ref={graphRef as never}
+        width={size.width}
+        height={size.height}
+        graphData={graphData}
+        backgroundColor="rgba(0,0,0,0)"
+        showNavInfo={false}
+        nodeThreeObject={(node) => {
+          const serviceNode = graphNode(node);
+          return iconObject(serviceNode, serviceNode.id === selectedId);
+        }}
+        nodeLabel={(node) => {
+          const serviceNode = graphNode(node);
+          return \`\${serviceNode.name} · \${serviceNode.category}\`;
+        }}
+        linkLabel={(link) => graphLink(link as GraphLink3D).label}
+        linkColor={(link) => {
+          const serviceLink = graphLink(link as GraphLink3D);
+          if (!selectedId) return '#415149';
+          return endpointId(serviceLink.source) === selectedId || endpointId(serviceLink.target) === selectedId ? '#7ee2b8' : '#17211c';
+        }}
+        linkWidth={(link) => {
+          const serviceLink = graphLink(link as GraphLink3D);
+          return endpointId(serviceLink.source) === selectedId || endpointId(serviceLink.target) === selectedId ? 2.2 : selectedId ? 0.35 : 0.8;
+        }}
+        linkOpacity={0.8}
+        linkDirectionalArrowLength={3.5}
+        linkDirectionalArrowRelPos={0.8}
+        linkDirectionalArrowColor={(link) => {
+          const serviceLink = graphLink(link as GraphLink3D);
+          return endpointId(serviceLink.source) === selectedId || endpointId(serviceLink.target) === selectedId ? '#9ff0cb' : '#506158';
+        }}
+        linkDirectionalParticles={(link) => {
+          const serviceLink = graphLink(link as GraphLink3D);
+          return endpointId(serviceLink.source) === selectedId || endpointId(serviceLink.target) === selectedId ? 3 : 0;
+        }}
+        linkDirectionalParticleWidth={1.8}
+        linkDirectionalParticleSpeed={0.006}
+        linkDirectionalParticleColor={() => '#b9f6da'}
+        d3AlphaDecay={0.035}
+        d3VelocityDecay={0.24}
+        warmupTicks={50}
+        cooldownTicks={160}
+        onNodeClick={focusNode}
+        onBackgroundClick={() => onSelect(null)}
+        onEngineStop={() => {
+          if (hasFramed.current) return;
+          hasFramed.current = true;
+          graphRef.current?.zoomToFit(700, 72);
+        }}
+      />
+      <div className="graph-3d__zoom" aria-label="3D zoom controls">
+        <button type="button" onClick={() => zoom(0.78)} title="Zoom in" aria-label="Zoom in">+</button>
+        <button type="button" onClick={() => zoom(1.28)} title="Zoom out" aria-label="Zoom out">−</button>
+      </div>
+      <div className="graph-3d__help" aria-hidden="true">Drag to rotate <span /> Scroll to zoom <span /> Click a service</div>
+      {selectedId && <div className="graph-3d__focus" aria-hidden="true">{Math.max(activeIds.size - 1, 0)} direct connections highlighted</div>}
+    </div>
+  );
+}
+
 export default function InternalServiceMapPage() {
   const nodes = useMemo<ServiceNode[]>(() => (graph.services ?? []).slice(0, layout.length).map((service, index) => ({
     ...service,
@@ -481,7 +682,6 @@ export default function InternalServiceMapPage() {
     color: palette[index % palette.length],
   })), []);
   const [mode, setMode] = useState<'2d' | '3d'>('2d');
-  const [rotation, setRotation] = useState({ x: 14, z: 0 });
   const [zoom, setZoom] = useState(1);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [drafts, setDrafts] = useState<Record<string, DraftDetails>>(() => Object.fromEntries(nodes.map((service) => [
@@ -566,38 +766,7 @@ export default function InternalServiceMapPage() {
             </div>
           </>
         ) : (
-          <div className="three-scene" aria-label="3D service graph">
-            <div className="three-space" style={{ '--rx': \`\${rotation.x}deg\`, '--rz': \`\${rotation.z}deg\`, '--zoom': zoom } as CSSProperties}>
-              {nodes.map((service, index) => (
-                <span
-                  key={\`\${service.id}-link\`}
-                  className={\`three-link \${selectedId === service.id ? 'is-active' : ''}\`}
-                  style={threeLinkStyle(index)}
-                />
-              ))}
-              <div className="three-core"><ProjectMark /></div>
-              {nodes.map((service, index) => (
-                <button
-                  type="button"
-                  key={service.id}
-                  className={\`three-node \${selectedId === service.id ? 'is-selected' : ''}\`}
-                  style={threeNodeStyle(index, service.color)}
-                  onPointerMove={(event) => {
-                    if (event.buttons !== 1) return;
-                    setRotation((current) => ({
-                      x: Math.max(-8, Math.min(34, current.x - event.movementY * 0.18)),
-                      z: current.z + event.movementX * 0.16,
-                    }));
-                  }}
-                  onClick={() => setSelectedId(service.id)}
-                >
-                  <span className="three-orb">{initials(service.name)}</span>
-                  <span>{service.name}</span>
-                </button>
-              ))}
-            </div>
-            <div className="three-hint">Drag a service to rotate / Click for details</div>
-          </div>
+          <ServiceGraph3D nodes={nodes} selectedId={selectedId} onSelect={setSelectedId} />
         )}
         <div className="zoom-controls" aria-label="Map zoom controls">
           <button type="button" className="zoom-button" onClick={zoomIn} aria-label="Zoom in">+</button>
@@ -692,6 +861,54 @@ async function prepareProjectLogo(graph, outputRoot) {
   graph.project.logoUrl = `/internalservicemap-assets/project-logo${extension}`;
 }
 
+function run(command, args, options = {}) {
+  return new Promise((resolvePromise, reject) => {
+    const child = spawn(command, args, { stdio: 'inherit', ...options });
+    child.on('error', reject);
+    child.on('exit', (code) => {
+      if (code === 0) resolvePromise();
+      else reject(new Error(`${command} ${args.join(' ')} exited with code ${code}`));
+    });
+  });
+}
+
+async function ensureInteractivePageDependencies(root, routeKind) {
+  if (routeKind === 'static' || routeKind === 'astro') return;
+  const packageJsonPath = join(root, 'package.json');
+  const packageJson = await readJsonOrNull(packageJsonPath);
+  if (!packageJson) return;
+
+  const dependencies = {
+    'react-force-graph-3d': '^1.29.1',
+    three: '^0.185.1',
+    'three-spritetext': '^1.10.0',
+  };
+  const devDependencies = {
+    '@types/three': '^0.185.4',
+  };
+  let changed = false;
+
+  packageJson.dependencies ??= {};
+  for (const [name, version] of Object.entries(dependencies)) {
+    if (packageJson.dependencies[name] || packageJson.devDependencies?.[name]) continue;
+    packageJson.dependencies[name] = version;
+    changed = true;
+  }
+
+  packageJson.devDependencies ??= {};
+  for (const [name, version] of Object.entries(devDependencies)) {
+    if (packageJson.dependencies?.[name] || packageJson.devDependencies[name]) continue;
+    packageJson.devDependencies[name] = version;
+    changed = true;
+  }
+
+  if (!changed) return;
+  await writeFile(packageJsonPath, `${JSON.stringify(packageJson, null, 2)}\n`);
+  if (existsSync(join(root, 'package-lock.json'))) {
+    await run('npm', ['install'], { cwd: root });
+  }
+}
+
 async function main() {
   const options = parseArgs();
   const graph = await readJson(options.input);
@@ -701,6 +918,7 @@ async function main() {
 
   await mkdir(dirname(route.path), { recursive: true });
   await writeFile(route.path, contents);
+  await ensureInteractivePageDependencies(options.root, route.kind);
   console.log(`Wrote /internalservicemap page to ${route.path}`);
 }
 
