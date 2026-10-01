@@ -114,16 +114,16 @@ function pageCss() {
     .delete-button { color: #ff6b57; background: transparent; font-weight: 800; }
     .save-button { min-height: 48px; border-radius: 10px; background: #287a5a; color: #effbf5; padding: 0 18px; font-weight: 800; box-shadow: 0 10px 30px rgba(54,180,126,0.18); }
     .helper-text { margin: 10px 0 0; color: #687c72; font-size: 12px; line-height: 1.45; }
-    .three-scene { position: absolute; inset: 0; perspective: 920px; overflow: hidden; cursor: grab; touch-action: none; }
+    .three-scene { position: absolute; inset: 0; perspective: 1200px; overflow: hidden; cursor: grab; touch-action: none; }
     .three-scene:active { cursor: grabbing; }
-    .three-space { position: absolute; left: 50%; top: 50%; width: 620px; height: 620px; transform-style: preserve-3d; transform: translate(-50%, -50%) rotateX(var(--rx, 58deg)) rotateZ(var(--rz, -28deg)); transition: transform 140ms ease; pointer-events: none; }
-    .three-link { position: absolute; left: 50%; top: 50%; width: var(--length); height: 1px; transform-origin: 0 0; transform: translate3d(0, 0, 0) rotateZ(var(--angle)) translateY(var(--z)); background: linear-gradient(90deg, rgba(101,240,173,0.42), rgba(101,240,173,0.05)); }
+    .three-space { position: absolute; left: 50%; top: 52%; width: min(1040px, 78vw); height: min(700px, 64vh); transform-style: preserve-3d; transform: translate(-50%, -50%) rotateX(var(--rx, 14deg)) rotateZ(var(--rz, 0deg)); transition: transform 140ms ease; pointer-events: none; }
+    .three-link { position: absolute; left: 50%; top: 50%; width: var(--length); height: 1px; transform-origin: 0 0; transform: rotateZ(var(--angle)); background: linear-gradient(90deg, rgba(101,240,173,0.28), rgba(101,240,173,0.05)); opacity: 0.72; }
     .three-link.is-active { height: 2px; background: repeating-linear-gradient(90deg, #65f0ad 0 8px, transparent 8px 14px); box-shadow: 0 0 14px rgba(101,240,173,0.68); animation: servicemapLinkFlow 1s linear infinite; }
-    .three-node { position: absolute; left: 50%; top: 50%; width: 82px; height: 82px; transform: translate3d(var(--x), var(--y), var(--z)) translate(-50%, -50%) rotateZ(28deg) rotateX(-58deg); border: 0; border-radius: 999px; background: transparent; color: #eaf8f1; cursor: pointer; font: inherit; text-align: center; pointer-events: auto; }
-    .three-orb { display: grid; place-items: center; width: 38px; height: 38px; margin: 0 auto 7px; border-radius: 999px; background: var(--color); color: #fff; box-shadow: 0 0 28px color-mix(in srgb, var(--color), transparent 44%); font-size: 12px; font-weight: 900; }
-    .three-node span { display: block; font-size: 10px; line-height: 1.15; text-shadow: 0 2px 8px #000; }
-    .three-node.is-selected .three-orb { outline: 2px solid #65f0ad; outline-offset: 4px; }
-    .three-core { position: absolute; left: 50%; top: 50%; display: grid; place-items: center; width: 72px; height: 72px; transform: translate(-50%, -50%); border-radius: 999px; background: #f7faf7; color: #101611; font-size: 30px; box-shadow: 0 0 0 10px rgba(101,240,173,0.14), 0 0 46px rgba(101,240,173,0.22); }
+    .three-node { position: absolute; left: 50%; top: 50%; width: 124px; min-height: 72px; transform: translate3d(var(--x), var(--y), var(--z)) translate(-50%, -50%) scale(var(--scale)); border: 0; border-radius: 999px; background: transparent; color: #eaf8f1; cursor: pointer; font: inherit; text-align: center; pointer-events: auto; }
+    .three-orb { display: grid; place-items: center; width: 30px; height: 30px; margin: 0 auto 6px; border-radius: 999px; background: var(--color); color: #fff; box-shadow: 0 0 28px color-mix(in srgb, var(--color), transparent 46%); font-size: 10px; font-weight: 900; }
+    .three-node span { display: block; max-width: 124px; margin: 0 auto; color: #e5f1ea; font-size: 10px; font-weight: 800; line-height: 1.12; text-shadow: 0 2px 8px #000; }
+    .three-node.is-selected .three-orb { outline: 2px solid #65f0ad; outline-offset: 4px; box-shadow: 0 0 34px rgba(101,240,173,0.72); }
+    .three-core { position: absolute; left: 50%; top: 50%; display: grid; place-items: center; width: 54px; height: 54px; transform: translate(-50%, -50%); border-radius: 999px; background: #f7faf7; color: #101611; font-size: 22px; box-shadow: 0 0 0 9px rgba(101,240,173,0.12), 0 0 46px rgba(101,240,173,0.2); }
     .three-hint { position: absolute; left: 50%; bottom: 30px; z-index: 21; transform: translateX(-50%); border: 1px solid rgba(255,255,255,0.1); border-radius: 999px; background: rgba(11,20,15,0.9); color: #789086; padding: 10px 18px; font-size: 12px; }
     @keyframes servicemapDash { to { stroke-dashoffset: -1.3; } }
     @keyframes servicemapLinkFlow { to { background-position: 22px 0; } }
@@ -274,31 +274,58 @@ function edgePath(node: ServiceNode) {
   return \`M \${fromX} \${node.y} H \${midX} V 50 H \${endX}\`;
 }
 
-function threePosition(index: number, count: number) {
-  const angle = (index / Math.max(count, 1)) * Math.PI * 2 - Math.PI / 2;
-  const radius = index % 3 === 0 ? 270 : index % 3 === 1 ? 215 : 320;
-  const z = ((index % 5) - 2) * 32;
+function threePosition(index: number) {
+  const constellation = [
+    { x: 0, y: -240, z: 46 },
+    { x: 230, y: -135, z: 24 },
+    { x: -220, y: -120, z: 10 },
+    { x: 165, y: 88, z: 16 },
+    { x: -170, y: 118, z: -10 },
+    { x: 365, y: 42, z: 34 },
+    { x: -360, y: 52, z: -18 },
+    { x: 265, y: 250, z: -32 },
+    { x: -265, y: -270, z: 28 },
+    { x: 430, y: -190, z: -20 },
+    { x: -430, y: 232, z: 22 },
+    { x: 40, y: 312, z: -38 },
+    { x: -60, y: -350, z: 18 },
+    { x: 520, y: 126, z: 8 },
+    { x: -520, y: -36, z: -26 },
+    { x: 350, y: -330, z: 30 },
+  ];
+  const fallbackAngle = index * 2.399963229728653;
+  const fallbackRadius = 250 + (index % 5) * 52;
+  const point = constellation[index] ?? {
+    x: Math.cos(fallbackAngle) * fallbackRadius,
+    y: Math.sin(fallbackAngle) * fallbackRadius * 0.72,
+    z: ((index % 7) - 3) * 14,
+  };
+  const angle = Math.atan2(point.y, point.x);
+  const length = Math.hypot(point.x, point.y);
+  const scale = 0.74 + Math.max(-36, Math.min(48, point.z)) / 220;
   return {
-    x: Math.cos(angle) * radius,
-    y: Math.sin(angle) * radius,
-    z,
+    x: point.x,
+    y: point.y,
+    z: point.z,
     angle: (angle * 180) / Math.PI,
-    length: radius,
+    length,
+    scale,
   };
 }
 
-function threeNodeStyle(index: number, count: number, color: string): CSSProperties {
-  const position = threePosition(index, count);
+function threeNodeStyle(index: number, color: string): CSSProperties {
+  const position = threePosition(index);
   return {
     '--x': \`\${position.x}px\`,
     '--y': \`\${position.y}px\`,
     '--z': \`\${position.z}px\`,
+    '--scale': String(position.scale),
     '--color': color,
   } as CSSProperties;
 }
 
-function threeLinkStyle(index: number, count: number): CSSProperties {
-  const position = threePosition(index, count);
+function threeLinkStyle(index: number): CSSProperties {
+  const position = threePosition(index);
   return {
     '--angle': \`\${position.angle}deg\`,
     '--length': \`\${position.length}px\`,
@@ -448,7 +475,7 @@ export default function InternalServiceMapPage() {
     color: palette[index % palette.length],
   })), []);
   const [mode, setMode] = useState<'2d' | '3d'>('2d');
-  const [rotation, setRotation] = useState({ x: 58, z: -28 });
+  const [rotation, setRotation] = useState({ x: 14, z: 0 });
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [drafts, setDrafts] = useState<Record<string, DraftDetails>>(() => Object.fromEntries(nodes.map((service) => [
     service.id,
@@ -533,7 +560,7 @@ export default function InternalServiceMapPage() {
                 <span
                   key={\`\${service.id}-link\`}
                   className={\`three-link \${selectedId === service.id ? 'is-active' : ''}\`}
-                  style={threeLinkStyle(index, nodes.length)}
+                  style={threeLinkStyle(index)}
                 />
               ))}
               <div className="three-core"><ProjectMark /></div>
@@ -542,12 +569,12 @@ export default function InternalServiceMapPage() {
                   type="button"
                   key={service.id}
                   className={\`three-node \${selectedId === service.id ? 'is-selected' : ''}\`}
-                  style={threeNodeStyle(index, nodes.length, service.color)}
+                  style={threeNodeStyle(index, service.color)}
                   onPointerMove={(event) => {
                     if (event.buttons !== 1) return;
                     setRotation((current) => ({
-                      x: Math.max(24, Math.min(72, current.x - event.movementY * 0.25)),
-                      z: current.z + event.movementX * 0.25,
+                      x: Math.max(-8, Math.min(34, current.x - event.movementY * 0.18)),
+                      z: current.z + event.movementX * 0.16,
                     }));
                   }}
                   onClick={() => setSelectedId(service.id)}
@@ -557,7 +584,7 @@ export default function InternalServiceMapPage() {
                 </button>
               ))}
             </div>
-            <div className="three-hint">Drag to rotate / Scroll to zoom / Click a service</div>
+            <div className="three-hint">Drag a service to rotate / Click for details</div>
           </div>
         )}
         <footer className="scan-foot">
