@@ -68,6 +68,8 @@ function pageCss() {
     .hub { position: absolute; left: 50%; top: 50%; z-index: 20; width: 132px; height: 132px; transform: translate(-50%, -50%); border-radius: 24px; border: 1px solid #315c47; background: #09120d; display: grid; place-items: center; box-shadow: 0 0 0 9px rgba(79,183,128,0.12), 0 0 42px rgba(100,255,174,0.16); }
     .hub-inner { width: 92px; height: 92px; border-radius: 18px; background: #fbfbf7; color: #111612; display: grid; place-items: center; font-size: 40px; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.08); }
     .service-node { position: absolute; z-index: 10; width: 250px; height: 74px; transform: translate(-50%, -50%); display: flex; align-items: center; gap: 16px; padding: 0 16px; border-radius: 8px; border: 1px solid #274036; background: rgba(16,24,19,0.95); box-shadow: 0 0 0 1px rgba(140,255,190,0.05), 0 18px 44px rgba(0,0,0,0.38); }
+    button.service-node { cursor: pointer; color: inherit; font: inherit; text-align: left; }
+    .service-node:hover, .service-node.is-selected { border-color: #66efae; box-shadow: 0 0 0 2px rgba(101,240,173,0.42), 0 18px 44px rgba(0,0,0,0.38); }
     .logo { width: 48px; height: 48px; flex: 0 0 auto; border-radius: 8px; display: grid; place-items: center; overflow: hidden; color: #fff; font-weight: 700; }
     .logo img { width: 28px; height: 28px; object-fit: contain; filter: invert(1); }
     .service-copy { min-width: 0; }
@@ -80,10 +82,36 @@ function pageCss() {
     .legend i { display: inline-block; width: 8px; height: 8px; margin-right: 8px; border-radius: 999px; }
     .scan-foot { position: absolute; right: 32px; bottom: 32px; z-index: 20; color: #53665d; text-align: right; font-size: 12px; line-height: 1.6; }
     .access-warning { position: absolute; left: 32px; right: 32px; bottom: 88px; z-index: 25; max-width: 720px; border: 1px solid rgba(241,200,91,0.42); border-radius: 8px; background: rgba(31,27,12,0.92); color: #f7daa0; padding: 12px 14px; font-size: 14px; line-height: 1.45; }
+    .drawer-scrim { position: absolute; inset: 0; z-index: 24; background: rgba(0,0,0,0.58); pointer-events: none; }
+    .details-panel { position: absolute; right: 22px; top: 64px; bottom: 26px; z-index: 30; width: min(492px, calc(100vw - 44px)); overflow: hidden; border: 1px solid #294034; border-radius: 24px; background: linear-gradient(180deg, rgba(21,31,25,0.98), rgba(8,17,12,0.98)); box-shadow: 0 24px 80px rgba(0,0,0,0.52); }
+    .details-head { display: flex; align-items: center; gap: 16px; padding: 26px 26px 22px; border-bottom: 1px solid rgba(255,255,255,0.08); }
+    .details-title { min-width: 0; flex: 1; }
+    .details-title span { display: block; color: #83978d; font-size: 13px; }
+    .details-title strong { display: block; margin-top: 6px; color: #f4fbf6; font-size: 28px; line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .close-button, .link-button, .delete-button, .save-button { border: 0; cursor: pointer; font: inherit; }
+    .close-button { width: 36px; height: 36px; border-radius: 999px; background: transparent; color: #91a59b; font-size: 26px; }
+    .details-body { height: calc(100% - 100px); overflow: auto; padding: 26px; }
+    .details-section { padding: 0 0 28px; margin: 0 0 28px; border-bottom: 1px solid rgba(255,255,255,0.08); }
+    .details-section:last-child { border-bottom: 0; margin-bottom: 0; }
+    .section-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; color: #91a59b; font-size: 13px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; }
+    .field-label { display: block; margin: 16px 0 8px; color: #83978d; font-size: 13px; }
+    .details-input, .details-textarea { width: 100%; border: 1px solid #2a3c33; border-radius: 10px; background: rgba(255,255,255,0.04); color: #e9f5ee; font: inherit; padding: 13px 14px; outline: none; }
+    .details-textarea { min-height: 96px; resize: vertical; line-height: 1.45; }
+    .details-input:focus, .details-textarea:focus { border-color: #65f0ad; box-shadow: 0 0 0 2px rgba(101,240,173,0.16); }
+    .links-list { display: grid; gap: 12px; }
+    .link-card { display: grid; grid-template-columns: 1fr auto; gap: 8px 10px; align-items: center; border: 1px solid #26382f; border-radius: 10px; background: rgba(255,255,255,0.035); padding: 14px; }
+    .link-card strong { color: #eef7f2; font-size: 14px; }
+    .link-card span { grid-column: 1 / -1; color: #74867d; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .link-button { color: #8dc9ae; background: transparent; padding: 4px; }
+    .details-actions { position: absolute; left: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 26px; border-top: 1px solid rgba(255,255,255,0.08); background: rgba(8,17,12,0.98); }
+    .delete-button { color: #ff6b57; background: transparent; font-weight: 800; }
+    .save-button { min-height: 48px; border-radius: 10px; background: #287a5a; color: #effbf5; padding: 0 18px; font-weight: 800; box-shadow: 0 10px 30px rgba(54,180,126,0.18); }
+    .helper-text { margin: 10px 0 0; color: #687c72; font-size: 12px; line-height: 1.45; }
     @media (max-width: 920px) {
       .map { min-height: 1120px; }
       .service-node { width: 220px; }
       .top-actions { display: none; }
+      .details-panel { position: fixed; inset: auto 12px 12px; top: 110px; width: auto; }
     }
   `;
 }
@@ -185,6 +213,250 @@ ${htmlBody(graph)}
 `;
 }
 
+function interactiveTsxPage(graph) {
+  return `'use client';
+
+import { useMemo, useState } from 'react';
+
+const css = ${JSON.stringify(pageCss())};
+type Evidence = { type?: string; value?: string; confidence?: string };
+type RawService = { id: string; name: string; key?: string; category?: string; confidence?: string; evidence?: Evidence[]; iconUrl?: string | null };
+type ServiceNode = RawService & { color: string; x: number; y: number };
+type DraftDetails = { subtitle: string; use: string; account: string; passwordLocation: string };
+type ServiceLink = { label: string; url: string };
+
+const graph = ${JSON.stringify(graph)} as { generatedAt: string; project?: { name?: string }; services?: RawService[] };
+const palette = ${JSON.stringify(palette)} as string[];
+const layout = ${JSON.stringify(layout)} as Array<{ x: number; y: number }>;
+
+function categoryLabel(value?: string | null) {
+  return String(value ?? 'service').replace(/-/g, ' ');
+}
+
+function initials(name: string) {
+  return name.split(/\\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join('').toUpperCase();
+}
+
+function edgePath(node: ServiceNode) {
+  const isLeft = node.x < 50;
+  const fromX = isLeft ? node.x + 8 : node.x - 8;
+  const endX = isLeft ? 47 : 53;
+  const midX = isLeft ? Math.max(fromX + 7, 42) : Math.min(fromX - 7, 58);
+  return \`M \${fromX} \${node.y} H \${midX} V 50 H \${endX}\`;
+}
+
+function primaryEvidence(service: RawService) {
+  const evidence = service.evidence?.[0];
+  return evidence ? \`\${evidence.type}: \${evidence.value}\` : 'No evidence captured yet.';
+}
+
+function serviceLinks(service: RawService): ServiceLink[] {
+  const lower = service.name.toLowerCase();
+  const links: ServiceLink[] = [];
+  if (service.iconUrl) links.push({ label: \`\${service.name} docs\`, url: service.iconUrl.replace('/icons/', '/') });
+  if (lower.includes('firebase')) links.push({ label: 'Firebase console', url: 'https://console.firebase.google.com/' });
+  if (lower.includes('google')) links.push({ label: 'Google Cloud console', url: 'https://console.cloud.google.com/' });
+  if (lower.includes('cloudflare')) links.push({ label: 'Cloudflare dashboard', url: 'https://dash.cloudflare.com/' });
+  if (lower.includes('github')) links.push({ label: 'GitHub', url: 'https://github.com/' });
+  if (lower.includes('stripe')) links.push({ label: 'Stripe dashboard', url: 'https://dashboard.stripe.com/' });
+  if (lower.includes('vercel')) links.push({ label: 'Vercel dashboard', url: 'https://vercel.com/dashboard' });
+  if (lower.includes('microsoft')) links.push({ label: 'Microsoft Azure portal', url: 'https://portal.azure.com/' });
+  if (links.length === 0) links.push({ label: \`\${service.name} website\`, url: \`https://www.google.com/search?q=\${encodeURIComponent(service.name)}\` });
+  return links.slice(0, 4);
+}
+
+function ServiceLogo({ service }: { service: RawService & { color: string } }) {
+  return (
+    <div className="logo" style={{ background: service.color }}>
+      {service.iconUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={service.iconUrl} alt="" />
+      ) : (
+        <span>{initials(service.name)}</span>
+      )}
+    </div>
+  );
+}
+
+function DetailsPanel({
+  service,
+  details,
+  onChange,
+  onClose,
+}: {
+  service: ServiceNode;
+  details: DraftDetails;
+  onChange: (details: DraftDetails) => void;
+  onClose: () => void;
+}) {
+  const links = serviceLinks(service);
+  return (
+    <>
+      <div className="drawer-scrim" />
+      <aside className="details-panel" aria-label={\`\${service.name} details\`}>
+        <div className="details-head">
+          <ServiceLogo service={service} />
+          <div className="details-title">
+            <span>{categoryLabel(service.category)}</span>
+            <strong>{service.name}</strong>
+          </div>
+          <button type="button" className="close-button" onClick={onClose} aria-label="Close details">×</button>
+        </div>
+
+        <div className="details-body">
+          <section className="details-section">
+            <div className="section-heading">Service details</div>
+            <label className="field-label" htmlFor="service-subtitle">Service subtitle</label>
+            <input
+              id="service-subtitle"
+              className="details-input"
+              value={details.subtitle}
+              onChange={(event) => onChange({ ...details, subtitle: event.target.value })}
+            />
+
+            <label className="field-label" htmlFor="service-use">How it is used</label>
+            <textarea
+              id="service-use"
+              className="details-textarea"
+              value={details.use}
+              onChange={(event) => onChange({ ...details, use: event.target.value })}
+            />
+          </section>
+
+          <section className="details-section">
+            <div className="section-heading">
+              <span>Relevant links</span>
+              <span>+ Add</span>
+            </div>
+            <div className="links-list">
+              {links.map((link) => (
+                <div className="link-card" key={link.label}>
+                  <strong>{link.label}</strong>
+                  <a className="link-button" href={link.url} target="_blank" rel="noreferrer">Open</a>
+                  <span>{link.url}</span>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section className="details-section">
+            <div className="section-heading">Account</div>
+            <label className="field-label" htmlFor="account-owner">Account owner or email</label>
+            <input
+              id="account-owner"
+              className="details-input"
+              value={details.account}
+              onChange={(event) => onChange({ ...details, account: event.target.value })}
+              placeholder="owner@example.com"
+            />
+
+            <label className="field-label" htmlFor="password-location">Password / vault item</label>
+            <input
+              id="password-location"
+              className="details-input"
+              value={details.passwordLocation}
+              onChange={(event) => onChange({ ...details, passwordLocation: event.target.value })}
+              placeholder="1Password item, vault record, or SSO note"
+            />
+            <p className="helper-text">Keep actual passwords in your password manager. Store only the vault item or access note here.</p>
+          </section>
+        </div>
+
+        <div className="details-actions">
+          <button type="button" className="delete-button">Delete</button>
+          <button type="button" className="save-button">Save changes</button>
+        </div>
+      </aside>
+    </>
+  );
+}
+
+export default function InternalServiceMapPage() {
+  const nodes = useMemo<ServiceNode[]>(() => (graph.services ?? []).slice(0, layout.length).map((service, index) => ({
+    ...service,
+    ...layout[index],
+    color: palette[index % palette.length],
+  })), []);
+  const [selectedId, setSelectedId] = useState<string | null>(nodes[0]?.id ?? null);
+  const [drafts, setDrafts] = useState<Record<string, DraftDetails>>(() => Object.fromEntries(nodes.map((service) => [
+    service.id,
+    {
+      subtitle: categoryLabel(service.category),
+      use: primaryEvidence(service),
+      account: '',
+      passwordLocation: '',
+    },
+  ])));
+  const selected = nodes.find((service) => service.id === selectedId) ?? null;
+
+  return (
+    <main className="servicemap-shell">
+      <style dangerouslySetInnerHTML={{ __html: css }} />
+      <header className="servicemap-topbar">
+        <div className="brand">
+          <div className="brand-mark">⌘</div>
+          <div>
+            <h1>servicemap</h1>
+            <p>{graph.project?.name ?? 'Project'} command center</p>
+          </div>
+        </div>
+        <div className="top-actions">
+          <span>{nodes.length} services</span>
+          <span className="mode-pill">2D</span>
+        </div>
+      </header>
+
+      <section className="map">
+        <div className="intro">
+          <strong>{graph.project?.name ?? 'Project'} infrastructure</strong>
+          <span>{selected ? \`Tracing \${selected.name}\` : 'Select a service to trace its dependencies'}</span>
+        </div>
+        <svg className="edges" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+          {nodes.map((service) => (
+            <path key={service.id} d={edgePath(service)} fill="none" stroke="rgba(103, 130, 118, 0.48)" strokeWidth="0.16" vectorEffect="non-scaling-stroke" />
+          ))}
+        </svg>
+        <div className="hub"><div className="hub-inner">⌘</div></div>
+        {nodes.map((service) => (
+          <button
+            type="button"
+            key={service.id}
+            className={\`service-node \${selectedId === service.id ? 'is-selected' : ''}\`}
+            style={{ left: \`\${service.x}%\`, top: \`\${service.y}%\` }}
+            onClick={() => setSelectedId(service.id)}
+          >
+            <ServiceLogo service={service} />
+            <div className="service-copy">
+              <strong>{service.name}</strong>
+              <span>{categoryLabel(service.category)}</span>
+            </div>
+            <i className={\`status-dot status-\${service.confidence}\`} />
+          </button>
+        ))}
+        <div className="legend">
+          <span><i style={{ background: '#4a7cff' }} />Cloud</span>
+          <span><i style={{ background: '#8be4b2' }} />Product</span>
+          <span><i style={{ background: '#65f0ad' }} />Active path</span>
+        </div>
+        <footer className="scan-foot">
+          <div>Generated {new Date(graph.generatedAt).toLocaleString()}</div>
+          <div>{nodes.length} services detected</div>
+        </footer>
+        {selected && drafts[selected.id] ? (
+          <DetailsPanel
+            service={selected}
+            details={drafts[selected.id]}
+            onClose={() => setSelectedId(null)}
+            onChange={(nextDetails) => setDrafts((current) => ({ ...current, [selected.id]: nextDetails }))}
+          />
+        ) : null}
+      </section>
+    </main>
+  );
+}
+`;
+}
+
 function tsxPage(graph) {
   const html = htmlBody(graph);
   const allowedEmails = graph.access?.allowedEmails ?? [];
@@ -217,18 +489,7 @@ export default async function InternalServiceMapPage() {
 `;
   }
 
-  return `const css = ${JSON.stringify(pageCss())};
-const html = ${JSON.stringify(html)};
-
-export default function InternalServiceMapPage() {
-  return (
-    <>
-      <style dangerouslySetInnerHTML={{ __html: css }} />
-      <div dangerouslySetInnerHTML={{ __html: html }} />
-    </>
-  );
-}
-`;
+  return interactiveTsxPage(graph);
 }
 
 function astroPage(graph) {
