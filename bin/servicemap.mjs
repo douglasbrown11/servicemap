@@ -168,6 +168,8 @@ function parseArgs() {
     installMethod: null,
     allowedEmails: [],
     open: true,
+    deploy: null,
+    deployCommand: null,
     invokedWithoutArgs: args.length === 0,
     explicitCommand: false,
     generationRequested: false,
@@ -210,6 +212,9 @@ function parseArgs() {
     if (arg === '--yes' || arg === '-y') options.yes = true;
     if (arg === '--dry-run') options.dryRun = true;
     if (arg === '--no-open') options.open = false;
+    if (arg === '--deploy') options.deploy = true;
+    if (arg === '--no-deploy') options.deploy = false;
+    if (arg === '--deploy-command') options.deployCommand = args[++index] ?? null;
     if (arg === '--help' || arg === '-h') options.help = true;
   }
 
@@ -222,8 +227,8 @@ function help() {
 
 Usage:
   servicemap
-  servicemap generate [--root <project>] [--mode auto|page|desktop] [--allow-emails <list>] [--dry-run] [--no-open]
-  servicemap --root <project> [--mode auto|page|desktop] [--allow-emails <list>] [--dry-run] [--no-open]
+  servicemap generate [--root <project>] [--mode auto|page|desktop] [--allow-emails <list>] [--dry-run] [--no-open] [--deploy|--no-deploy]
+  servicemap --root <project> [--mode auto|page|desktop] [--allow-emails <list>] [--dry-run] [--no-open] [--deploy|--no-deploy]
   servicemap install-skill [--survey] [--agent codex|claude|grok|all] [--targets <ids>] [--install-method copy|symlink]
   servicemap skills install [--survey] [--agent codex|claude|grok|all]
   servicemap update
@@ -231,6 +236,8 @@ Usage:
 Examples:
   npx servicemap
   npx servicemap generate --root ../my-app --allow-emails founder@example.com,ops@example.com
+  npx servicemap generate --root ../my-app --deploy
+  npx servicemap generate --root ../my-app --deploy-command "npm run deploy"
   npx servicemap -- --root ../my-app
   npx servicemap install-skill
   npx servicemap install-skill --survey
@@ -253,6 +260,23 @@ function run(command, args, options = {}) {
     child.on('exit', (code) => {
       if (code === 0) resolvePromise();
       else reject(new Error(`${command} ${args.join(' ')} exited with code ${code}`));
+    });
+  });
+}
+
+function runShell(command, options = {}) {
+  const shell = process.platform === 'win32' ? 'cmd' : 'sh';
+  const args = process.platform === 'win32' ? ['/c', command] : ['-lc', command];
+  return run(shell, args, options);
+}
+
+function askYesNo(question) {
+  if (!process.stdin.isTTY || !process.stdout.isTTY) return Promise.resolve(false);
+  const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+  return new Promise((resolvePromise) => {
+    rl.question(`${question} [y/N] `, (answer) => {
+      rl.close();
+      resolvePromise(/^y(es)?$/i.test(answer.trim()));
     });
   });
 }
@@ -350,6 +374,47 @@ async function openGeneratedPage(root, framework) {
 async function readScan(root) {
   const scanPath = resolve(root, '.servicemap/internal-servicemap.json');
   return JSON.parse(await readFile(scanPath, 'utf8'));
+}
+
+async function packageJsonFor(root) {
+  return JSON.parse(await readFile(resolve(root, 'package.json'), 'utf8').catch(() => '{}'));
+}
+
+async function detectDeployCommand(root, options) {
+  if (options.deployCommand) return options.deployCommand;
+  const packageJson = await packageJsonFor(root);
+  if (packageJson.scripts?.deploy) return 'npm run deploy';
+  if (existsSync(resolve(root, 'vercel.json')) || existsSync(resolve(root, '.vercel/project.json'))) {
+    return 'npx vercel --prod';
+  }
+  if (existsSync(resolve(root, 'netlify.toml'))) {
+    return 'npx netlify deploy --prod';
+  }
+  return null;
+}
+
+async function maybeDeploy(root, options) {
+  if (options.deploy === false) return;
+  const command = await detectDeployCommand(root, options);
+  if (!command) {
+    if (options.deploy === true) {
+      console.log('No deploy command was detected. Add a deploy script or pass --deploy-command "<command>".');
+    } else {
+      console.log('Generated /internalservicemap. Deploy manually, or pass --deploy-command next time.');
+    }
+    return;
+  }
+
+  const shouldDeploy = options.deploy === true
+    ? true
+    : await askYesNo(`Deploy /internalservicemap now with "${command}"?`);
+  if (!shouldDeploy) {
+    console.log(`Skipped deployment. To deploy later, run: ${command}`);
+    return;
+  }
+
+  console.log(`Deploying with: ${command}`);
+  await runShell(command, { cwd: root });
 }
 
 function targetsByIds(ids) {
@@ -709,6 +774,7 @@ async function main() {
   } else {
     await run(process.execPath, [pageScript, '--root', options.root]);
     if (options.open) await openGeneratedPage(options.root, scan.project?.framework);
+    await maybeDeploy(options.root, options);
   }
 }
 

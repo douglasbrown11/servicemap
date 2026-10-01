@@ -24,7 +24,10 @@ If no website can be found, create a desktop app fallback at `servicemap-desktop
 7. If the scan reports `framework: static` or no website route can be safely attached, run `scripts/generate-desktop-app.mjs --root <project-root>` to create `servicemap-desktop`.
 8. Adapt the generated surface to the project's existing design system only when the route is clear and the edits are low-risk.
 9. Run the project's relevant build, lint, and focused tests.
-10. Report the page or desktop app path, service count, validation run, any services marked low or medium confidence, and whether requested email access was enforced.
+10. If a website page was created, tell the user it is only local until deployed and ask whether they want to deploy it now.
+    Do not deploy unless the user explicitly says yes.
+    If they approve, use the project's existing deployment path, preferring `npm run deploy` when present, then provider-specific project configuration such as Vercel or Netlify.
+11. Report the page or desktop app path, service count, validation run, any services marked low or medium confidence, whether requested email access was enforced, and whether deployment was skipped or completed.
 
 ## Safety Rules
 
@@ -32,7 +35,8 @@ Read environment variable names only.
 Never copy, expose, summarize, or commit secret values.
 The scan output may include env var names such as `STRIPE_SECRET_KEY`, but not their values.
 
-Do not add authentication, deployment, analytics, or external writes unless the user explicitly asks.
+Do not add authentication, analytics, or external writes unless the user explicitly asks.
+Deploy only after the generated website page exists and the user has confirmed deployment.
 If the repository already has route protection conventions for internal pages, follow them.
 When email access is requested, enforce it only through the app's existing server-side authentication.
 The built-in generator can enforce email allowlists for Next.js App Router projects using Clerk by checking `currentUser()` against the configured emails.

@@ -71,6 +71,8 @@ servicemap generate --root <project-path>
 servicemap --root <project-path>
 servicemap generate --root <project-path> --allow-emails founder@example.com,ops@example.com
 servicemap generate --root <project-path> --allow-email founder@example.com --allow-email ops@example.com
+servicemap generate --root <project-path> --deploy
+servicemap generate --root <project-path> --deploy-command "npm run deploy"
 servicemap --mode page
 servicemap --mode desktop
 servicemap --dry-run
@@ -84,6 +86,10 @@ servicemap install-skill --targets universal,claude,grok
 servicemap skills install --agent codex
 servicemap update
 ```
+
+When a website page is generated, Servicemap prompts before deployment when it detects a deployment command.
+It prefers an existing `npm run deploy` script, then provider config such as Vercel or Netlify.
+Use `--no-deploy` to skip the prompt.
 
 ## Contents
 
