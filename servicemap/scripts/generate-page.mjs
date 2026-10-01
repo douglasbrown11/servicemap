@@ -69,6 +69,7 @@ function pageCss() {
     .brand h1 { margin: 0; font-size: 20px; line-height: 1; letter-spacing: 0; }
     .brand p, .top-meta { margin: 6px 0 0; color: #8aa097; font-size: 14px; }
     .top-actions { display: flex; align-items: center; gap: 12px; color: #8da59a; font-size: 14px; white-space: nowrap; }
+    .add-service-button { min-height: 40px; border: 0; border-radius: 10px; background: #287a5a; color: #effbf5; padding: 0 14px; cursor: pointer; font: inherit; font-weight: 800; box-shadow: 0 10px 28px rgba(54,180,126,0.16); }
     .mode-toggle { display: inline-flex; gap: 4px; padding: 4px; border-radius: 10px; background: #0b130f; }
     .mode-button { min-height: 36px; border: 0; border-radius: 8px; background: transparent; color: #789086; padding: 0 12px; cursor: pointer; font: inherit; font-weight: 800; }
     .mode-button.is-active { background: #276f53; color: #c9f9df; box-shadow: 0 0 18px rgba(101,240,173,0.16); }
@@ -94,7 +95,7 @@ function pageCss() {
     .service-copy span { display: block; margin-top: 5px; color: #7f9188; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .status-dot { margin-left: auto; width: 8px; height: 8px; flex: 0 0 auto; border-radius: 999px; box-shadow: 0 0 14px currentColor; }
     .status-high { color: #65f0ad; background: #65f0ad; }
-    .status-medium, .status-low { color: #f1c85b; background: #f1c85b; }
+    .status-medium, .status-low, .status-manual { color: #f1c85b; background: #f1c85b; }
     .legend { position: absolute; left: 50%; bottom: 32px; z-index: 20; transform: translateX(-50%); display: flex; align-items: center; gap: 20px; border: 1px solid rgba(255,255,255,0.1); border-radius: 999px; background: rgba(11,20,15,0.9); color: #789086; padding: 8px 20px; font-size: 12px; }
     .legend i { display: inline-block; width: 8px; height: 8px; margin-right: 8px; border-radius: 999px; }
     .zoom-controls { position: absolute; left: 28px; bottom: 26px; z-index: 29; display: grid; overflow: hidden; border: 1px solid rgba(255,255,255,0.12); border-radius: 10px; background: rgba(7,14,10,0.9); box-shadow: 0 12px 32px rgba(0,0,0,0.34); }
@@ -129,6 +130,12 @@ function pageCss() {
     .delete-button { color: #ff6b57; background: transparent; font-weight: 800; }
     .save-button { min-height: 48px; border-radius: 10px; background: #287a5a; color: #effbf5; padding: 0 18px; font-weight: 800; box-shadow: 0 10px 30px rgba(54,180,126,0.18); }
     .helper-text { margin: 10px 0 0; color: #687c72; font-size: 12px; line-height: 1.45; }
+    .modal-card { position: absolute; left: 50%; top: 50%; z-index: 31; width: min(440px, calc(100vw - 44px)); transform: translate(-50%, -50%); border: 1px solid #294034; border-radius: 20px; background: linear-gradient(180deg, rgba(21,31,25,0.99), rgba(8,17,12,0.99)); box-shadow: 0 24px 80px rgba(0,0,0,0.56); overflow: hidden; }
+    .modal-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 22px 24px; border-bottom: 1px solid rgba(255,255,255,0.08); }
+    .modal-head h2 { margin: 0; color: #f4fbf6; font-size: 20px; letter-spacing: 0; }
+    .modal-body { padding: 22px 24px 24px; }
+    .modal-actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 22px; }
+    .secondary-button { min-height: 44px; border: 1px solid #2a3c33; border-radius: 10px; background: rgba(255,255,255,0.04); color: #c8d8d0; padding: 0 16px; cursor: pointer; font: inherit; font-weight: 800; }
     .graph-3d { position: absolute; inset: 0; overflow: hidden; }
     .graph-3d::before { content: ''; position: absolute; z-index: 1; inset: 0; pointer-events: none; background: radial-gradient(circle at 50% 50%, transparent 38%, rgba(2,5,4,.46) 100%); }
     .graph-3d canvas { display: block; cursor: grab; }
@@ -270,9 +277,10 @@ import SpriteText from 'three-spritetext';
 
 const css = ${JSON.stringify(pageCss())};
 type Evidence = { type?: string; value?: string; confidence?: string };
-type RawService = { id: string; name: string; key?: string; category?: string; confidence?: string; evidence?: Evidence[]; iconUrl?: string | null };
+type RawService = { id: string; name: string; key?: string; category?: string; confidence?: string; evidence?: Evidence[]; iconUrl?: string | null; parentId?: string | null };
 type ServiceNode = RawService & { color: string; x: number; y: number };
 type DraftDetails = { subtitle: string; use: string; account: string; passwordLocation: string };
+type NewServiceDraft = { name: string; category: string; parentId: string };
 type ServiceLink = { label: string; url: string };
 type GraphNode3D = { id: string; name: string; category: string; color: string; iconUrl?: string | null; monogram: string; isProduct: boolean; x?: number; y?: number; z?: number };
 type GraphLink3D = { id: string; source: string | GraphNode3D; target: string | GraphNode3D; label: string };
@@ -293,11 +301,16 @@ function initials(name: string) {
 }
 
 function edgePath(node: ServiceNode) {
+  return edgePathBetween({ x: 50, y: 50 }, node);
+}
+
+function edgePathBetween(parent: { x: number; y: number }, node: ServiceNode) {
   const isLeft = node.x < 50;
-  const fromX = isLeft ? node.x + 8 : node.x - 8;
-  const endX = isLeft ? 47 : 53;
-  const midX = isLeft ? Math.max(fromX + 7, 42) : Math.min(fromX - 7, 58);
-  return \`M \${fromX} \${node.y} H \${midX} V 50 H \${endX}\`;
+  const fromX = parent.x;
+  const fromY = parent.y;
+  const endX = isLeft ? node.x + 8 : node.x - 8;
+  const midX = (fromX + endX) / 2;
+  return \`M \${fromX} \${fromY} H \${midX} V \${node.y} H \${endX}\`;
 }
 
 function primaryEvidence(service: RawService) {
@@ -315,6 +328,25 @@ function graphNode(node: NodeObject) {
 
 function graphLink(link: GraphLink3D) {
   return link;
+}
+
+function slugify(value: string) {
+  return value.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'service';
+}
+
+function servicePosition(index: number) {
+  const point = layout[index];
+  if (point) return point;
+  const angle = (index - layout.length) * 2.399963229728653;
+  const radius = 34 + ((index - layout.length) % 4) * 4;
+  return {
+    x: 50 + Math.cos(angle) * radius,
+    y: 50 + Math.sin(angle) * radius * 0.72,
+  };
+}
+
+function relationshipLabel(parentId?: string | null) {
+  return parentId ? 'depends on' : 'uses';
 }
 
 function iconObject(node: GraphNode3D, selected: boolean) {
@@ -511,6 +543,70 @@ function DetailsPanel({
   );
 }
 
+function AddServiceModal({
+  draft,
+  nodes,
+  onChange,
+  onClose,
+  onSubmit,
+}: {
+  draft: NewServiceDraft;
+  nodes: ServiceNode[];
+  onChange: (draft: NewServiceDraft) => void;
+  onClose: () => void;
+  onSubmit: () => void;
+}) {
+  return (
+    <>
+      <div className="drawer-scrim" />
+      <section className="modal-card" aria-label="Add service">
+        <div className="modal-head">
+          <h2>Add service</h2>
+          <button type="button" className="close-button" onClick={onClose} aria-label="Close add service">×</button>
+        </div>
+        <div className="modal-body">
+          <label className="field-label" htmlFor="new-service-name">Service name</label>
+          <input
+            id="new-service-name"
+            className="details-input"
+            value={draft.name}
+            onChange={(event) => onChange({ ...draft, name: event.target.value })}
+            placeholder="Stripe, Vercel, Google Cloud"
+            autoFocus
+          />
+
+          <label className="field-label" htmlFor="new-service-category">Use</label>
+          <input
+            id="new-service-category"
+            className="details-input"
+            value={draft.category}
+            onChange={(event) => onChange({ ...draft, category: event.target.value })}
+            placeholder="billing, hosting, analytics"
+          />
+
+          <label className="field-label" htmlFor="new-service-parent">Parent node</label>
+          <select
+            id="new-service-parent"
+            className="details-input"
+            value={draft.parentId}
+            onChange={(event) => onChange({ ...draft, parentId: event.target.value })}
+          >
+            <option value="product">{graph.project?.name ?? 'Product'}</option>
+            {nodes.map((node) => (
+              <option key={node.id} value={node.id}>{node.name}</option>
+            ))}
+          </select>
+
+          <div className="modal-actions">
+            <button type="button" className="secondary-button" onClick={onClose}>Cancel</button>
+            <button type="button" className="save-button" onClick={onSubmit}>Add service</button>
+          </div>
+        </div>
+      </section>
+    </>
+  );
+}
+
 function ServiceGraph3D({
   nodes,
   selectedId,
@@ -544,10 +640,10 @@ function ServiceGraph3D({
       isProduct: node.category === 'product',
     }))],
     links: nodes.map((node): GraphLink3D => ({
-      id: \`project-\${node.id}\`,
-      source: 'project',
+      id: \`\${node.parentId ?? 'project'}-\${node.id}\`,
+      source: node.parentId ?? 'project',
       target: node.id,
-      label: node.confidence === 'high' ? 'uses' : 'may use',
+      label: node.confidence === 'high' ? relationshipLabel(node.parentId) : \`may \${relationshipLabel(node.parentId)}\`,
     })),
   }), [nodes]);
 
@@ -685,14 +781,17 @@ function ServiceGraph3D({
 }
 
 export default function InternalServiceMapPage() {
-  const nodes = useMemo<ServiceNode[]>(() => (graph.services ?? []).slice(0, layout.length).map((service, index) => ({
+  const [services, setServices] = useState<RawService[]>(() => graph.services ?? []);
+  const nodes = useMemo<ServiceNode[]>(() => services.map((service, index) => ({
     ...service,
-    ...layout[index],
+    ...servicePosition(index),
     color: palette[index % palette.length],
-  })), []);
+  })), [services]);
   const [mode, setMode] = useState<'2d' | '3d'>('2d');
   const [zoom, setZoom] = useState(1);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [isAddingService, setIsAddingService] = useState(false);
+  const [newService, setNewService] = useState<NewServiceDraft>({ name: '', category: '', parentId: 'product' });
   const [drafts, setDrafts] = useState<Record<string, DraftDetails>>(() => Object.fromEntries(nodes.map((service) => [
     service.id,
     {
@@ -703,9 +802,45 @@ export default function InternalServiceMapPage() {
     },
   ])));
   const selected = nodes.find((service) => service.id === selectedId) ?? null;
+  const nodeById = useMemo(() => new Map(nodes.map((node) => [node.id, node])), [nodes]);
   const zoomIn = () => setZoom((current) => Math.min(1.45, Number((current + 0.12).toFixed(2))));
   const zoomOut = () => setZoom((current) => Math.max(0.7, Number((current - 0.12).toFixed(2))));
   const resetZoom = () => setZoom(1);
+  const addService = () => {
+    const name = newService.name.trim();
+    if (!name) return;
+    const baseId = slugify(name);
+    const existingIds = new Set(services.map((service) => service.id));
+    let id = baseId;
+    let suffix = 2;
+    while (existingIds.has(id)) {
+      id = \`\${baseId}-\${suffix}\`;
+      suffix += 1;
+    }
+    const service: RawService = {
+      id,
+      key: id,
+      name,
+      category: newService.category.trim() || 'service',
+      confidence: 'manual',
+      evidence: [{ type: 'manual', value: 'Added in servicemap UI.', confidence: 'manual' }],
+      iconUrl: null,
+      parentId: newService.parentId === 'product' ? null : newService.parentId,
+    };
+    setServices((current) => [...current, service]);
+    setDrafts((current) => ({
+      ...current,
+      [id]: {
+        subtitle: categoryLabel(service.category),
+        use: primaryEvidence(service),
+        account: '',
+        passwordLocation: '',
+      },
+    }));
+    setSelectedId(id);
+    setNewService({ name: '', category: '', parentId: 'product' });
+    setIsAddingService(false);
+  };
 
   return (
     <main className="servicemap-shell">
@@ -720,6 +855,7 @@ export default function InternalServiceMapPage() {
         </div>
         <div className="top-actions">
           <span>{nodes.length} services</span>
+          <button type="button" className="add-service-button" onClick={() => setIsAddingService(true)}>+ Add service</button>
           <div className="mode-toggle" aria-label="View mode">
             <button type="button" className={\`mode-button \${mode === '2d' ? 'is-active' : ''}\`} onClick={() => setMode('2d')}>2D</button>
             <button type="button" className={\`mode-button \${mode === '3d' ? 'is-active' : ''}\`} onClick={() => setMode('3d')}>3D</button>
@@ -736,19 +872,23 @@ export default function InternalServiceMapPage() {
           <>
             <div className="map-plane" style={{ '--zoom': zoom } as CSSProperties}>
               <svg className="edges" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-                {nodes.map((service) => (
+                {nodes.map((service) => {
+                  const parent = service.parentId ? nodeById.get(service.parentId) : null;
+                  const isActive = selectedId === service.id || selectedId === service.parentId;
+                  return (
                   <path
                     key={service.id}
-                    className={\`edge-line \${selectedId === service.id ? 'is-active' : selectedId ? 'is-muted' : ''}\`}
-                    d={edgePath(service)}
+                    className={\`edge-line \${isActive ? 'is-active' : selectedId ? 'is-muted' : ''}\`}
+                    d={parent ? edgePathBetween(parent, service) : edgePath(service)}
                     fill="none"
-                    stroke={selectedId === service.id ? '#65f0ad' : 'rgba(103, 130, 118, 0.48)'}
-                    strokeWidth={selectedId === service.id ? '0.28' : '0.16'}
-                    strokeDasharray={selectedId === service.id ? '0.72 0.58' : undefined}
-                    strokeLinecap={selectedId === service.id ? 'round' : undefined}
+                    stroke={isActive ? '#65f0ad' : 'rgba(103, 130, 118, 0.48)'}
+                    strokeWidth={isActive ? '0.28' : '0.16'}
+                    strokeDasharray={isActive ? '0.72 0.58' : undefined}
+                    strokeLinecap={isActive ? 'round' : undefined}
                     vectorEffect="non-scaling-stroke"
                   />
-                ))}
+                  );
+                })}
               </svg>
               <div className="hub"><div className="hub-inner"><ProjectMark /></div></div>
               {nodes.map((service) => (
@@ -792,6 +932,15 @@ export default function InternalServiceMapPage() {
             details={drafts[selected.id]}
             onClose={() => setSelectedId(null)}
             onChange={(nextDetails) => setDrafts((current) => ({ ...current, [selected.id]: nextDetails }))}
+          />
+        ) : null}
+        {isAddingService ? (
+          <AddServiceModal
+            draft={newService}
+            nodes={nodes}
+            onChange={setNewService}
+            onClose={() => setIsAddingService(false)}
+            onSubmit={addService}
           />
         ) : null}
       </section>
