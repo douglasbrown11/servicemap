@@ -10,6 +10,7 @@ const logoDatabasePath = resolve(skillRoot, 'assets/service-logo-database.json')
 const defaultOutput = '.servicemap/internal-servicemap.json';
 
 const ignoredDirs = new Set([
+  '.servicemap',
   '.git',
   '.next',
   '.nuxt',
@@ -17,12 +18,14 @@ const ignoredDirs = new Set([
   'build',
   'coverage',
   'dist',
+  'graphify-out',
   'node_modules',
+  'servicemap-desktop',
   'target',
   'vendor',
 ]);
 
-const sourceExtensions = new Set(['.js', '.jsx', '.ts', '.tsx', '.mjs', '.cjs', '.astro', '.vue', '.svelte', '.py', '.rb', '.go', '.rs', '.php', '.java']);
+const sourceExtensions = new Set(['.js', '.jsx', '.ts', '.tsx', '.mjs', '.cjs', '.astro', '.vue', '.svelte', '.py', '.rb', '.go', '.rs', '.php', '.java', '.swift']);
 const configFileNames = new Set([
   'Dockerfile',
   'docker-compose.yml',
@@ -187,7 +190,7 @@ function buildGeneratedRules(database) {
     iconUrl: entry.iconUrl,
     packages: [entry.key, entry.name.toLowerCase().replace(/\s+/g, ''), ...entry.aliases.map((alias) => alias.toLowerCase())].filter(Boolean),
     envPrefixes: [entry.key.replace(/[^a-z0-9]/gi, '_').toUpperCase()],
-    domains: [entry.sourceHost].filter(Boolean),
+    domains: [],
   }));
 }
 

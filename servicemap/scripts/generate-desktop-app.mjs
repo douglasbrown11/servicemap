@@ -89,7 +89,7 @@ function indexHtml() {
 function mainJsx() {
   return `import React from 'react';
 import { createRoot } from 'react-dom/client';
-import graph from '.servicemap-data.json';
+import graph from './servicemap-data.json';
 import './styles.css';
 
 function strongestEvidence(service) {
@@ -97,42 +97,111 @@ function strongestEvidence(service) {
   return evidence ? \`\${evidence.type}: \${evidence.value}\` : 'No evidence captured';
 }
 
+function categoryLabel(value) {
+  return String(value ?? 'service').replace(/-/g, ' ');
+}
+
+function categoryClass(value) {
+  return String(value ?? 'service').replace(/[^a-z0-9]+/gi, '-').toLowerCase();
+}
+
+function layoutServices(services) {
+  const left = [];
+  const right = [];
+  services.forEach((service, index) => {
+    if (index % 2 === 0) left.push(service);
+    else right.push(service);
+  });
+
+  const place = (items, side) => items.map((service, index) => {
+    const count = Math.max(items.length, 1);
+    const y = 15 + ((index + 0.5) * 70) / count;
+    const x = side === 'left' ? 10 + (index % 2) * 13 : 71 + (index % 2) * 10;
+    return { service, x, y, side };
+  });
+
+  return [...place(left, 'left'), ...place(right, 'right')];
+}
+
 function App() {
   const services = graph.services ?? [];
   const highConfidence = services.filter((service) => service.confidence === 'high').length;
+  const nodes = layoutServices(services);
 
   return (
-    <main className="shell">
+    <main className="appShell">
       <header className="topbar">
-        <div>
-          <h1>Internal Servicemap</h1>
-          <p>{graph.project?.name ?? 'This project'} uses these detected services.</p>
+        <div className="brand">
+          <div className="brandIcon" aria-hidden="true">⌘</div>
+          <div>
+            <h1>service-map</h1>
+            <p>{graph.project?.name ?? 'Internal'} command center</p>
+          </div>
         </div>
-        <span className="stamp">{new Date(graph.generatedAt).toLocaleString()}</span>
+        <div className="toolbar" aria-label="Service map actions">
+          <span className="identity">{graph.project?.framework ?? 'static'}</span>
+          <button type="button">2D</button>
+          <button type="button" className="ghost">3D</button>
+          <button type="button" className="ghost">Import</button>
+          <button type="button" className="primary">+ Add service</button>
+        </div>
       </header>
 
-      <section className="metrics" aria-label="Service map summary">
-        <div><strong>{services.length}</strong><span>services</span></div>
-        <div><strong>{highConfidence}</strong><span>high confidence</span></div>
-        <div><strong>{graph.project?.framework ?? 'unknown'}</strong><span>source</span></div>
-      </section>
+      <section className="mapCanvas" aria-label="Detected service map">
+        <div className="sectionLabel">
+          <span>{(graph.project?.name ?? 'project').toUpperCase()} INFRASTRUCTURE</span>
+          <small>{services.length} services · {highConfidence} high confidence</small>
+        </div>
 
-      <section className="grid">
-        {services.length ? services.map((service) => (
-          <article className="card" key={service.id}>
-            <div className="cardTop">
-              <div className="logo" aria-hidden="true">
-                {service.iconUrl ? <img src={service.iconUrl} alt="" /> : service.name.slice(0, 2).toUpperCase()}
-              </div>
-              <div className="nameBlock">
-                <strong>{service.name}</strong>
-                <span>{service.confidence} confidence</span>
-              </div>
+        <svg className="edges" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+          {nodes.map((node) => {
+            const startX = node.side === 'left' ? node.x + 13 : node.x;
+            const endX = 50;
+            const midX = node.side === 'left' ? 38 : 62;
+            return (
+              <path
+                key={node.service.id}
+                d={\`M \${startX} \${node.y} H \${midX} V 50 H \${endX}\`}
+                className={node.service.confidence === 'high' ? 'edge edgeHigh' : 'edge'}
+              />
+            );
+          })}
+        </svg>
+
+        <div className="centerNode" aria-label="Project">
+          <div className="coreIcon" aria-hidden="true">⌬</div>
+        </div>
+
+        {nodes.map(({ service, x, y }) => (
+          <article
+            className={\`serviceNode \${service.confidence === 'high' ? 'isHigh' : ''}\`}
+            key={service.id}
+            style={{ left: \`\${x}%\`, top: \`\${y}%\` }}
+            title={strongestEvidence(service)}
+          >
+            <div className={\`logo logo-\${categoryClass(service.category)}\`} aria-hidden="true">
+              {service.iconUrl ? <img src={service.iconUrl} alt="" /> : service.name.slice(0, 2).toUpperCase()}
             </div>
-            <span className="category">{service.category}</span>
-            <p>{strongestEvidence(service)}</p>
+            <div className="nameBlock">
+              <strong>{service.name}</strong>
+              <span>{categoryLabel(service.category)}</span>
+            </div>
+            <span className={\`statusDot \${service.confidence === 'high' ? 'active' : 'pending'}\`} />
           </article>
-        )) : <div className="empty">No external services were detected yet.</div>}
+        ))}
+
+        {!services.length && (
+          <div className="empty">
+            <strong>No external services detected</strong>
+            <span>Run the scanner again after adding integrations.</span>
+          </div>
+        )}
+
+        <div className="legend">
+          <span><b className="blue" /> Cloud</span>
+          <span><b className="green" /> Active path</span>
+          <span><b className="yellow" /> Lower confidence</span>
+        </div>
       </section>
     </main>
   );
@@ -144,8 +213,8 @@ createRoot(document.getElementById('root')).render(<App />);
 
 function stylesCss() {
   return `:root {
-  color: #172033;
-  background: #f7f8fb;
+  color: #eef7f2;
+  background: #020806;
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
@@ -157,107 +226,244 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
-  background: #f7f8fb;
+  background: #020806;
 }
 
-.shell {
-  max-width: 1180px;
-  margin: 0 auto;
-  padding: 40px 24px 56px;
+button {
+  border: 0;
+  border-radius: 8px;
+  min-height: 42px;
+  padding: 0 16px;
+  color: #e8f5ee;
+  background: #101a16;
+  font: inherit;
+  font-weight: 700;
+}
+
+.appShell {
+  min-height: 100vh;
+  background: #020806;
 }
 
 .topbar {
+  height: 86px;
+  padding: 18px 28px;
   display: flex;
+  align-items: center;
   justify-content: space-between;
-  align-items: flex-end;
-  gap: 24px;
-  margin-bottom: 24px;
+  gap: 20px;
+  background: #202622;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+
+.brandIcon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  background: #1f704f;
+  border: 1px solid #38c987;
+  box-shadow: 0 0 24px rgba(56, 201, 135, 0.25);
+  color: #c9f8df;
+  font-size: 25px;
 }
 
 h1 {
-  margin: 0 0 8px;
-  font-size: 44px;
+  margin: 0 0 3px;
+  font-size: 22px;
   line-height: 1;
   letter-spacing: 0;
 }
 
 p {
   margin: 0;
-  color: #5f6b7c;
-  line-height: 1.55;
 }
 
-.stamp {
-  color: #64748b;
-  font-size: 13px;
-  white-space: nowrap;
+.brand p,
+.nameBlock span,
+.sectionLabel,
+.legend {
+  color: rgba(238, 247, 242, 0.54);
 }
 
-.metrics {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
-  margin: 22px 0;
-}
-
-.metrics div,
-.card {
-  background: #fff;
-  border: 1px solid #e3e8ef;
-  border-radius: 8px;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
-}
-
-.metrics div {
-  padding: 16px;
-}
-
-.metrics strong {
-  display: block;
-  font-size: 26px;
-}
-
-.metrics span {
-  color: #64748b;
-  font-size: 13px;
-}
-
-.grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  gap: 12px;
-}
-
-.card {
-  min-height: 150px;
-  padding: 14px;
-}
-
-.cardTop {
+.toolbar {
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-bottom: 10px;
+  min-width: 0;
+}
+
+.identity {
+  color: #93c8ac;
+  font-size: 13px;
+  font-weight: 800;
+  margin-right: 10px;
+  white-space: nowrap;
+}
+
+.toolbar .primary {
+  background: #247b58;
+  box-shadow: inset 0 0 0 1px rgba(104, 255, 179, 0.25);
+}
+
+.toolbar .ghost {
+  color: rgba(238, 247, 242, 0.72);
+}
+
+.mapCanvas {
+  position: relative;
+  min-height: calc(100vh - 86px);
+  overflow: hidden;
+  background:
+    radial-gradient(circle at center, rgba(37, 128, 88, 0.16), transparent 34%),
+    radial-gradient(circle at 1px 1px, rgba(115, 255, 183, 0.16) 1px, transparent 1px),
+    #020806;
+  background-size: auto, 28px 28px, auto;
+}
+
+.sectionLabel {
+  position: absolute;
+  top: 28px;
+  left: 32px;
+  right: 32px;
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.sectionLabel small {
+  letter-spacing: 0.08em;
+}
+
+.edges {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.edge {
+  fill: none;
+  stroke: rgba(121, 158, 140, 0.34);
+  stroke-width: 0.12;
+}
+
+.edgeHigh {
+  stroke: rgba(115, 255, 183, 0.5);
+}
+
+.centerNode {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 112px;
+  height: 112px;
+  transform: translate(-50%, -50%);
+  display: grid;
+  place-items: center;
+  border-radius: 26px;
+  background: rgba(15, 31, 24, 0.88);
+  border: 1px solid rgba(114, 255, 183, 0.28);
+  box-shadow: 0 0 0 9px rgba(56, 201, 135, 0.08), 0 0 45px rgba(56, 201, 135, 0.18);
+}
+
+.coreIcon {
+  width: 78px;
+  height: 78px;
+  display: grid;
+  place-items: center;
+  border-radius: 20px;
+  background: #f7fbf7;
+  color: #101513;
+  font-size: 38px;
+}
+
+.serviceNode {
+  position: absolute;
+  width: clamp(190px, 16vw, 260px);
+  min-height: 70px;
+  transform: translateY(-50%);
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr) 12px;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(22, 33, 27, 0.98), rgba(12, 20, 16, 0.96));
+  border: 1px solid rgba(158, 202, 176, 0.24);
+  box-shadow: 0 12px 26px rgba(0, 0, 0, 0.34), inset 0 0 0 1px rgba(255, 255, 255, 0.03);
+}
+
+.serviceNode.isHigh {
+  box-shadow: 0 12px 26px rgba(0, 0, 0, 0.34), 0 0 24px rgba(56, 201, 135, 0.08);
 }
 
 .logo {
-  width: 36px;
-  height: 36px;
-  border-radius: 8px;
-  background: #172033;
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: #24302b;
   color: #fff;
   display: grid;
   place-items: center;
   overflow: hidden;
   flex: 0 0 auto;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 800;
 }
 
 .logo img {
-  max-width: 22px;
-  max-height: 22px;
+  width: 100%;
+  height: 100%;
   object-fit: contain;
+  padding: 7px;
+  filter: brightness(0) invert(1);
+}
+
+.logo-cloud {
+  background: #2d72f6;
+}
+
+.logo-developer-tools {
+  background: #202833;
+}
+
+.logo-billing {
+  background: #635bff;
+}
+
+.logo-email,
+.logo-collaboration {
+  background: #f45d48;
+}
+
+.logo-ai {
+  background: #1f7a55;
+}
+
+.logo-monitoring {
+  background: #6b4bd8;
+}
+
+.logo-auth {
+  background: #28a37a;
+}
+
+.logo-database {
+  background: #f57c00;
 }
 
 .nameBlock {
@@ -266,47 +472,108 @@ p {
 
 .nameBlock strong {
   display: block;
-  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 15px;
 }
 
-.nameBlock span,
-.card p {
-  color: #64748b;
+.nameBlock span {
+  display: block;
+  margin-top: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-size: 12px;
+  text-transform: capitalize;
 }
 
-.category {
-  display: inline-flex;
-  align-items: center;
-  height: 22px;
-  padding: 0 8px;
+.statusDot {
+  width: 8px;
+  height: 8px;
   border-radius: 999px;
-  background: #edf2ff;
-  color: #334155;
-  font-size: 12px;
-  margin-bottom: 10px;
+  background: #eac94f;
+  box-shadow: 0 0 12px rgba(234, 201, 79, 0.9);
+}
+
+.statusDot.active {
+  background: #69f6b1;
+  box-shadow: 0 0 12px rgba(105, 246, 177, 0.9);
 }
 
 .empty {
-  background: #fff;
-  border: 1px dashed #cbd5e1;
-  border-radius: 8px;
-  padding: 24px;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, 90px);
+  display: grid;
+  gap: 6px;
+  text-align: center;
+  color: rgba(238, 247, 242, 0.74);
 }
 
-@media (max-width: 720px) {
+.legend {
+  position: absolute;
+  left: 50%;
+  bottom: 28px;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 20px;
+  padding: 8px 16px;
+  border-radius: 999px;
+  background: rgba(8, 15, 12, 0.82);
+  border: 1px solid rgba(158, 202, 176, 0.18);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  white-space: nowrap;
+}
+
+.legend b {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+}
+
+.legend .blue {
+  background: #3d8cff;
+}
+
+.legend .green {
+  background: #69f6b1;
+}
+
+.legend .yellow {
+  background: #eac94f;
+}
+
+@media (max-width: 880px) {
   .topbar {
-    display: block;
+    height: auto;
+    align-items: flex-start;
+    flex-direction: column;
   }
 
-  h1 {
-    font-size: 34px;
+  .toolbar {
+    flex-wrap: wrap;
   }
 
-  .metrics {
-    grid-template-columns: 1fr;
+  .mapCanvas {
+    min-height: 980px;
+  }
+
+  .serviceNode {
+    width: 210px;
+  }
+
+  .sectionLabel {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }
 `;
@@ -395,7 +662,7 @@ async function main() {
   await writeProjectFile(options.output, 'vite.config.js', viteConfig());
   await writeProjectFile(options.output, 'src/main.jsx', mainJsx());
   await writeProjectFile(options.output, 'src/styles.css', stylesCss());
-  await writeProjectFile(options.output, 'srcservicemap-data.json', `${JSON.stringify(graph, null, 2)}\n`);
+  await writeProjectFile(options.output, 'src/servicemap-data.json', `${JSON.stringify(graph, null, 2)}\n`);
   await writeProjectFile(options.output, 'src-tauri/tauri.conf.json', tauriConfig(graph));
   await writeProjectFile(options.output, 'src-tauri/Cargo.toml', cargoToml());
   await writeProjectFile(options.output, 'src-tauri/build.rs', buildRs());
