@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { existsSync } from 'node:fs';
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
-import { dirname, join, resolve } from 'node:path';
+import { copyFile, mkdir, readFile, writeFile } from 'node:fs/promises';
+import { dirname, extname, isAbsolute, join, resolve } from 'node:path';
 
 const defaultInput = '.servicemap/internal-servicemap.json';
 
@@ -56,6 +56,7 @@ function pageCss() {
     .servicemap-topbar { height: 88px; display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 0 28px; border-bottom: 1px solid rgba(255,255,255,0.08); background: #222823; }
     .brand { display: flex; align-items: center; gap: 16px; min-width: 0; }
     .brand-mark { width: 48px; height: 48px; border-radius: 10px; border: 1px solid #2a7958; background: #164d39; color: #7cf1b5; display: grid; place-items: center; box-shadow: 0 0 26px rgba(82,255,166,0.16); font-size: 22px; }
+    .brand-mark img, .hub-inner img, .three-core img { width: 100%; height: 100%; object-fit: cover; border-radius: inherit; }
     .brand h1 { margin: 0; font-size: 20px; line-height: 1; letter-spacing: 0; }
     .brand p, .top-meta { margin: 6px 0 0; color: #8aa097; font-size: 14px; }
     .top-actions { display: flex; align-items: center; gap: 12px; color: #8da59a; font-size: 14px; white-space: nowrap; }
@@ -147,6 +148,11 @@ function initials(name) {
   return name.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join('').toUpperCase();
 }
 
+function projectMarkHtml(graph) {
+  const logoUrl = graph.project?.logoUrl;
+  return logoUrl ? `<img src="${escapeHtml(logoUrl)}" alt="${escapeHtml(graph.project?.name ?? 'Project')} logo">` : '⌘';
+}
+
 function htmlBody(graph) {
   const services = graph.services ?? [];
   const access = graph.access ?? {};
@@ -160,6 +166,7 @@ function htmlBody(graph) {
     color: palette[index % palette.length],
   }));
   const edges = nodes.map((node) => `<path d="${edgePath(node)}" fill="none" stroke="rgba(103, 130, 118, 0.48)" stroke-width="0.16" vector-effect="non-scaling-stroke"></path>`).join('');
+  const projectMark = projectMarkHtml(graph);
   const serviceNodes = nodes.map((service) => `
     <article class="service-node" style="left:${service.x}%;top:${service.y}%">
       <div class="logo" style="background:${service.color}">${service.iconUrl ? `<img src="${escapeHtml(service.iconUrl)}" alt="">` : escapeHtml(initials(service.name))}</div>
@@ -175,7 +182,7 @@ function htmlBody(graph) {
     <main class="servicemap-shell">
       <header class="servicemap-topbar">
         <div class="brand">
-          <div class="brand-mark">⌘</div>
+          <div class="brand-mark">${projectMark}</div>
           <div>
             <h1>servicemap</h1>
             <p>${escapeHtml(graph.project?.name ?? 'Project')} command center</p>
@@ -195,7 +202,7 @@ function htmlBody(graph) {
           <span>Select a service to trace its dependencies</span>
         </div>
         <svg class="edges" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">${edges}</svg>
-        <div class="hub"><div class="hub-inner">⌘</div></div>
+        <div class="hub"><div class="hub-inner">${projectMark}</div></div>
         ${serviceNodes || '<div class="intro"><span>No external services were detected yet.</span></div>'}
         ${accessNotice}
         <div class="legend">
@@ -240,7 +247,7 @@ type ServiceNode = RawService & { color: string; x: number; y: number };
 type DraftDetails = { subtitle: string; use: string; account: string; passwordLocation: string };
 type ServiceLink = { label: string; url: string };
 
-const graph = ${JSON.stringify(graph)} as { generatedAt: string; project?: { name?: string }; services?: RawService[] };
+const graph = ${JSON.stringify(graph)} as { generatedAt: string; project?: { name?: string; logoUrl?: string }; services?: RawService[] };
 const palette = ${JSON.stringify(palette)} as string[];
 const layout = ${JSON.stringify(layout)} as Array<{ x: number; y: number }>;
 
@@ -322,6 +329,15 @@ function ServiceLogo({ service }: { service: RawService & { color: string } }) {
         <span>{initials(service.name)}</span>
       )}
     </div>
+  );
+}
+
+function ProjectMark() {
+  return graph.project?.logoUrl ? (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img src={graph.project.logoUrl} alt={\`\${graph.project?.name ?? 'Project'} logo\`} />
+  ) : (
+    <>⌘</>
   );
 }
 
@@ -443,7 +459,7 @@ export default function InternalServiceMapPage() {
       <style dangerouslySetInnerHTML={{ __html: css }} />
       <header className="servicemap-topbar">
         <div className="brand">
-          <div className="brand-mark">⌘</div>
+          <div className="brand-mark"><ProjectMark /></div>
           <div>
             <h1>servicemap</h1>
             <p>{graph.project?.name ?? 'Project'} command center</p>
@@ -470,7 +486,7 @@ export default function InternalServiceMapPage() {
                 <path key={service.id} d={edgePath(service)} fill="none" stroke="rgba(103, 130, 118, 0.48)" strokeWidth="0.16" vectorEffect="non-scaling-stroke" />
               ))}
             </svg>
-            <div className="hub"><div className="hub-inner">⌘</div></div>
+            <div className="hub"><div className="hub-inner"><ProjectMark /></div></div>
             {nodes.map((service) => (
               <button
                 type="button"
@@ -499,7 +515,7 @@ export default function InternalServiceMapPage() {
               {nodes.map((service, index) => (
                 <span key={\`\${service.id}-link\`} className="three-link" style={threeLinkStyle(index, nodes.length)} />
               ))}
-              <div className="three-core">⌘</div>
+              <div className="three-core"><ProjectMark /></div>
               {nodes.map((service, index) => (
                 <button
                   type="button"
@@ -594,9 +610,27 @@ const html = ${JSON.stringify(htmlBody(graph))};
 `;
 }
 
+async function prepareProjectLogo(graph, outputRoot) {
+  const logoPath = graph.project?.logo?.path;
+  if (!logoPath) return;
+
+  const sourceRoot = graph.project?.root ? resolve(graph.project.root) : outputRoot;
+  const sourcePath = isAbsolute(logoPath) ? logoPath : resolve(sourceRoot, logoPath);
+  if (!existsSync(sourcePath)) return;
+
+  const extension = extname(sourcePath) || '.png';
+  const assetDir = join(outputRoot, 'public', 'internalservicemap-assets');
+  const assetPath = join(assetDir, `project-logo${extension}`);
+  await mkdir(assetDir, { recursive: true });
+  await copyFile(sourcePath, assetPath);
+
+  graph.project.logoUrl = `/internalservicemap-assets/project-logo${extension}`;
+}
+
 async function main() {
   const options = parseArgs();
   const graph = await readJson(options.input);
+  await prepareProjectLogo(graph, options.root);
   const route = routeFor(options.root, graph.project?.framework);
   const contents = route.kind === 'astro' ? astroPage(graph) : route.kind === 'static' ? staticHtml(graph) : tsxPage(graph);
 

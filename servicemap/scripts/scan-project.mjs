@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { existsSync } from 'node:fs';
-import { readFile, readdir, stat, writeFile } from 'node:fs/promises';
+import { readFile, readdir, writeFile } from 'node:fs/promises';
 import { basename, dirname, extname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -240,6 +240,59 @@ function buildEdges(projectName, services) {
   }));
 }
 
+async function findProjectLogo(root, files) {
+  const appIconManifests = files
+    .filter((file) => file.endsWith('AppIcon.appiconset/Contents.json'))
+    .sort((a, b) => scoreLogoManifest(b) - scoreLogoManifest(a));
+
+  for (const manifestPath of appIconManifests) {
+    const manifest = await readJson(manifestPath);
+    const images = Array.isArray(manifest?.images) ? manifest.images : [];
+    const candidates = images
+      .filter((image) => image?.filename)
+      .map((image) => ({
+        file: join(dirname(manifestPath), image.filename),
+        score: scoreAppIconImage(image),
+      }))
+      .filter((candidate) => existsSync(candidate.file))
+      .sort((a, b) => b.score - a.score);
+
+    if (candidates[0]) {
+      return {
+        path: relative(root, candidates[0].file),
+        source: 'asset-catalog-app-icon',
+      };
+    }
+  }
+
+  const namedLogo = files.find((file) => /(^|[/\\])(app-?icon|logo|favicon)\.(png|jpg|jpeg|webp|svg|ico)$/i.test(file));
+  if (namedLogo) {
+    return {
+      path: relative(root, namedLogo),
+      source: 'named-image-file',
+    };
+  }
+
+  return null;
+}
+
+function scoreLogoManifest(path) {
+  let score = 0;
+  if (/Assets\.xcassets[/\\]AppIcon\.appiconset/i.test(path)) score += 10;
+  if (/Assets 2\.xcassets/i.test(path)) score += 20;
+  return score;
+}
+
+function scoreAppIconImage(image) {
+  const size = Number.parseInt(String(image.size ?? '0').split('x')[0], 10) || 0;
+  let score = size;
+  const filename = String(image.filename ?? '').toLowerCase();
+  if (filename.includes('dark') || filename.includes('darker')) score += 100;
+  if (filename.includes('tinted')) score -= 50;
+  if (image.platform === 'ios') score += 25;
+  return score;
+}
+
 async function main() {
   const options = parseArgs();
   const packageJsonPath = join(options.root, 'package.json');
@@ -273,6 +326,7 @@ async function main() {
     configFiles: configFiles.map((file) => basename(file)),
     database,
   });
+  const logo = await findProjectLogo(options.root, files);
 
   const graph = {
     generatedAt: new Date().toISOString(),
@@ -280,6 +334,7 @@ async function main() {
       name: projectName,
       root: options.root,
       framework: detectFramework(options.root, packageJson, files),
+      logo,
     },
     access: {
       allowedEmails: options.allowedEmails,
