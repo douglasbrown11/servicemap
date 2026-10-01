@@ -367,7 +367,7 @@ function iconObject(node: GraphNode3D, selected: boolean) {
 
   const label = new SpriteText(node.name);
   label.color = selected ? '#b9f6da' : '#dfeae4';
-  label.textHeight = selected ? 5.4 : 4.7;
+  label.textHeight = selected ? 4.1 : 3.2;
   label.fontSize = 220;
   label.fontWeight = selected ? '700' : '600';
   label.backgroundColor = 'rgba(5, 8, 7, .72)';
@@ -524,6 +524,7 @@ function ServiceGraph3D({
   const graphRef = useRef<ForceGraphMethods<GraphNode3D, GraphLink3D> | undefined>(undefined);
   const [size, setSize] = useState({ width: 900, height: 700 });
   const hasFramed = useRef(false);
+  const hasConfiguredForces = useRef(false);
   const graphData = useMemo(() => ({
     nodes: [{
       id: 'project',
@@ -573,17 +574,24 @@ function ServiceGraph3D({
     return () => observer.disconnect();
   }, []);
 
-  useEffect(() => {
+  const configureForces = useCallback(() => {
     const graphInstance = graphRef.current;
-    if (!graphInstance) return;
+    if (!graphInstance || hasConfiguredForces.current) return;
     const charge = graphInstance.d3Force('charge') as AdjustableForce | undefined;
     const link = graphInstance.d3Force('link') as AdjustableForce | undefined;
     graphInstance.renderer().setPixelRatio(Math.min(window.devicePixelRatio * 1.5, 3));
-    charge?.strength?.(-230);
-    link?.distance?.(92);
+    charge?.strength?.(-720);
+    link?.distance?.(210);
     graphInstance.d3ReheatSimulation();
+    hasConfiguredForces.current = true;
+  }, []);
+
+  useEffect(() => {
     hasFramed.current = false;
-  }, [graphData.nodes.length, graphData.links.length]);
+    hasConfiguredForces.current = false;
+    const frame = window.requestAnimationFrame(configureForces);
+    return () => window.cancelAnimationFrame(frame);
+  }, [configureForces, graphData.nodes.length, graphData.links.length]);
 
   const focusNode = useCallback((node: NodeObject) => {
     const serviceNode = graphNode(node);
@@ -653,16 +661,17 @@ function ServiceGraph3D({
         linkDirectionalParticleWidth={1.8}
         linkDirectionalParticleSpeed={0.006}
         linkDirectionalParticleColor={() => '#b9f6da'}
-        d3AlphaDecay={0.035}
-        d3VelocityDecay={0.24}
-        warmupTicks={50}
-        cooldownTicks={160}
+        d3AlphaDecay={0.026}
+        d3VelocityDecay={0.18}
+        warmupTicks={90}
+        cooldownTicks={260}
         onNodeClick={focusNode}
         onBackgroundClick={() => onSelect(null)}
+        onEngineTick={configureForces}
         onEngineStop={() => {
           if (hasFramed.current) return;
           hasFramed.current = true;
-          graphRef.current?.zoomToFit(700, 72);
+          graphRef.current?.zoomToFit(700, 130);
         }}
       />
       <div className="graph-3d__zoom" aria-label="3D zoom controls">
