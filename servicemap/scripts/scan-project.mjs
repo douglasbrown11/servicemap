@@ -194,6 +194,36 @@ function buildGeneratedRules(database) {
   }));
 }
 
+function normalizeLookup(value) {
+  return String(value ?? '').trim().toLowerCase().replace(/[^a-z0-9]+/g, '');
+}
+
+function buildDatabaseLookup(database) {
+  const lookup = new Map();
+  for (const entry of database) {
+    const values = [entry.key, entry.name, ...(entry.aliases ?? [])];
+    for (const value of values) {
+      const normalized = normalizeLookup(value);
+      if (normalized && !lookup.has(normalized)) lookup.set(normalized, entry);
+    }
+  }
+  return lookup;
+}
+
+function enrichDetectedServices(services, database) {
+  const lookup = buildDatabaseLookup(database);
+  return services.map((service) => {
+    const databaseEntry = lookup.get(normalizeLookup(service.key)) ?? lookup.get(normalizeLookup(service.name));
+    if (!databaseEntry) return service;
+    return {
+      ...service,
+      key: service.key ?? databaseEntry.key,
+      category: service.category ?? databaseEntry.category,
+      iconUrl: service.iconUrl ?? databaseEntry.iconUrl ?? null,
+    };
+  });
+}
+
 function matchServices({ dependencies, imports, envNames, hosts, configFiles, database }) {
   const serviceMap = new Map();
   const databaseByKey = new Map(database.map((entry) => [entry.key, entry]));
@@ -226,7 +256,7 @@ function matchServices({ dependencies, imports, envNames, hosts, configFiles, da
   if (configFiles.includes('vercel.json')) addEvidence(serviceMap, 'vercel', enrichedManualRules.find((rule) => rule.key === 'vercel'), { type: 'config-file', value: 'vercel.json', confidence: 'high' });
   if (configFiles.includes('wrangler.toml')) addEvidence(serviceMap, 'cloudflare', enrichedManualRules.find((rule) => rule.key === 'cloudflare'), { type: 'config-file', value: 'wrangler.toml', confidence: 'high' });
 
-  return [...serviceMap.values()].map((service) => ({
+  return enrichDetectedServices([...serviceMap.values()], database).map((service) => ({
     ...service,
     evidence: service.evidence.slice(0, 8),
   })).sort((a, b) => a.name.localeCompare(b.name));
