@@ -226,6 +226,7 @@ Usage:
   servicemap --root <project> [--mode auto|page|desktop] [--allow-emails <list>] [--dry-run] [--no-open]
   servicemap install-skill [--survey] [--agent codex|claude|grok|all] [--targets <ids>] [--install-method copy|symlink]
   servicemap skills install [--survey] [--agent codex|claude|grok|all]
+  servicemap update
 
 Examples:
   npx servicemap
@@ -236,6 +237,7 @@ Examples:
   npx servicemap install-skill --agent all
   npx servicemap install-skill --targets codex,claude,cursor
   npx servicemap skills install --agent claude
+  npx servicemap update
   servicemap --mode desktop
 `);
 }
@@ -593,6 +595,11 @@ async function prepareStableSource(options) {
   return resolve(sourceRoot, 'servicemap');
 }
 
+async function updateStableSource(options) {
+  const source = await prepareStableSource(options);
+  console.log(`Servicemap source is current at ${dirname(source)}`);
+}
+
 async function installIntoRoot(root, source, method, options) {
   const destination = join(root, 'servicemap');
   if (options.dryRun) {
@@ -667,8 +674,13 @@ async function main() {
     return;
   }
 
+  if (options.command === 'update') {
+    await updateStableSource(options);
+    return;
+  }
+
   if (options.command !== 'generate') {
-    throw new Error(`Unknown command "${options.command}". Use generate, install-skill, or skills install.`);
+    throw new Error(`Unknown command "${options.command}". Use generate, install-skill, update, or skills install.`);
   }
 
   if (!['auto', 'page', 'desktop'].includes(options.mode)) {

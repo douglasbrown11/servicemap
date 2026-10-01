@@ -13,16 +13,18 @@ If no website can be found, create a desktop app fallback at `servicemap-desktop
 
 ## Workflow
 
-1. Inspect the project layout and current web framework.
-2. If the user gives a list of emails that may access the generated web page, pass them to the scan command with `--allow-email <email>` for each address or `--allow-emails <comma-separated-list>`.
-3. Run `scripts/scan-project.mjs --root <project-root>` to create `.servicemap/internal-servicemap.json`.
+1. If this skill is installed from the stable source clone at `~/.servicemap/source`, run `git -C ~/.servicemap/source pull --ff-only` before using the scripts.
+   If the update fails because the network is unavailable, continue with the installed local copy and report that the auto-update did not complete.
+2. Inspect the project layout and current web framework.
+3. If the user gives a list of emails that may access the generated web page, pass them to the scan command with `--allow-email <email>` for each address or `--allow-emails <comma-separated-list>`.
+4. Run `scripts/scan-project.mjs --root <project-root>` to create `.servicemap/internal-servicemap.json`.
    Include the access flags from the previous step when relevant.
-4. Review the scan output for obvious false positives or missing high-confidence services.
-5. If the scan detects a web framework or routeable website, run `scripts/generate-page.mjs --root <project-root>` to create the framework-specific `/internalservicemap` route.
-6. If the scan reports `framework: static` or no website route can be safely attached, run `scripts/generate-desktop-app.mjs --root <project-root>` to create `servicemap-desktop`.
-7. Adapt the generated surface to the project's existing design system only when the route is clear and the edits are low-risk.
-8. Run the project's relevant build, lint, and focused tests.
-9. Report the page or desktop app path, service count, validation run, any services marked low or medium confidence, and whether requested email access was enforced.
+5. Review the scan output for obvious false positives or missing high-confidence services.
+6. If the scan detects a web framework or routeable website, run `scripts/generate-page.mjs --root <project-root>` to create the framework-specific `/internalservicemap` route.
+7. If the scan reports `framework: static` or no website route can be safely attached, run `scripts/generate-desktop-app.mjs --root <project-root>` to create `servicemap-desktop`.
+8. Adapt the generated surface to the project's existing design system only when the route is clear and the edits are low-risk.
+9. Run the project's relevant build, lint, and focused tests.
+10. Report the page or desktop app path, service count, validation run, any services marked low or medium confidence, and whether requested email access was enforced.
 
 ## Safety Rules
 

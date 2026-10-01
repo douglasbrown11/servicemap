@@ -41,6 +41,15 @@ npx servicemap skills install --agent claude
 ```
 
 Agents with known local skill folders get the real `servicemap` skill installed.
+Symlink installs use a stable local clone at `~/.servicemap/source`, so updates can be pulled without reinstalling every agent folder.
+
+To update that local skill source:
+
+```bash
+npx servicemap update
+```
+
+Running `npx servicemap` again also refreshes the stable source before installing.
 
 After a global install, the command is:
 
@@ -73,6 +82,7 @@ servicemap install-skill --agent grok
 servicemap install-skill --agent all
 servicemap install-skill --targets universal,claude,grok
 servicemap skills install --agent codex
+servicemap update
 ```
 
 ## Contents
