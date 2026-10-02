@@ -88,7 +88,9 @@ function pageCss() {
     .hub { position: absolute; left: 50%; top: 50%; z-index: 20; width: 132px; height: 132px; transform: translate(-50%, -50%); border-radius: 24px; border: 1px solid #315c47; background: #09120d; display: grid; place-items: center; box-shadow: 0 0 0 9px rgba(79,183,128,0.12), 0 0 42px rgba(100,255,174,0.16); }
     .hub-inner { width: 92px; height: 92px; border-radius: 18px; background: #fbfbf7; color: #111612; display: grid; place-items: center; font-size: 40px; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.08); }
     .service-node { position: absolute; z-index: 10; width: 250px; height: 74px; transform: translate(-50%, -50%); display: flex; align-items: center; gap: 16px; padding: 0 16px; border-radius: 8px; border: 1px solid #274036; background: rgba(16,24,19,0.95); box-shadow: 0 0 0 1px rgba(140,255,190,0.05), 0 18px 44px rgba(0,0,0,0.38); }
-    button.service-node { cursor: pointer; color: inherit; font: inherit; text-align: left; }
+    button.service-node { cursor: grab; touch-action: none; user-select: none; color: inherit; font: inherit; text-align: left; }
+    button.service-node:active { cursor: grabbing; }
+    .service-node img { pointer-events: none; }
     .service-node:hover, .service-node.is-selected { border-color: #66efae; box-shadow: 0 0 0 2px rgba(101,240,173,0.42), 0 18px 44px rgba(0,0,0,0.38); }
     .map.has-selection .service-node { opacity: 0.16; }
     .map.has-selection .service-node.is-related { opacity: 0.48; }
@@ -814,16 +816,64 @@ function ServiceGraph3D({
 
 export default function InternalServiceMapPage() {
   const [services, setServices] = useState<RawService[]>(() => graph.services ?? []);
+  const [positions, setPositions] = useState<Record<string, { x: number; y: number }>>({});
+  const positionsRef = useRef(positions);
+  const layoutKey = 'servicemap:positions:' + (graph.project?.name ?? 'project');
+  const nodeDrag = useRef<{ id: string; pointerId: number; clientX: number; clientY: number; x: number; y: number; width: number; height: number; moved: boolean } | null>(null);
+  const suppressClick = useRef(false);
+  useEffect(() => {
+    try {
+      const stored = JSON.parse(localStorage.getItem(layoutKey) ?? '{}');
+      const valid = Object.fromEntries(Object.entries(stored).filter(([, value]) => {
+        const point = value as { x?: number; y?: number } | null;
+        return point && Number.isFinite(point.x) && Number.isFinite(point.y);
+      })) as Record<string, { x: number; y: number }>;
+      positionsRef.current = valid;
+      setPositions(valid);
+    } catch { /* Layout remains usable when storage is unavailable. */ }
+  }, [layoutKey]);
   const nodes = useMemo<ServiceNode[]>(() => services.map((service, index) => ({
     ...service,
     ...servicePosition(index),
+    ...positions[service.id],
     color: palette[index % palette.length],
-  })), [services]);
+  })), [services, positions]);
   const [mode, setMode] = useState<'2d' | '3d'>('2d');
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [panStart, setPanStart] = useState<{ pointerId: number; x: number; y: number; panX: number; panY: number } | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const startNodeDrag = (event: PointerEvent<HTMLButtonElement>, node: ServiceNode) => {
+    if (event.button !== 0) return;
+    event.stopPropagation();
+    const plane = event.currentTarget.parentElement!.getBoundingClientRect();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    suppressClick.current = false;
+    nodeDrag.current = { id: node.id, pointerId: event.pointerId, clientX: event.clientX, clientY: event.clientY, x: node.x, y: node.y, width: plane.width, height: plane.height, moved: false };
+  };
+  const moveNodeDrag = (event: PointerEvent<HTMLButtonElement>) => {
+    const drag = nodeDrag.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    event.stopPropagation();
+    const dx = event.clientX - drag.clientX;
+    const dy = event.clientY - drag.clientY;
+    if (!drag.moved && Math.hypot(dx, dy) < 4) return;
+    drag.moved = true;
+    suppressClick.current = true;
+    const next = { ...positionsRef.current, [drag.id]: { x: drag.x + dx / drag.width * 100, y: drag.y + dy / drag.height * 100 } };
+    positionsRef.current = next;
+    setPositions(next);
+  };
+  const stopNodeDrag = (event: PointerEvent<HTMLButtonElement>) => {
+    const drag = nodeDrag.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    event.stopPropagation();
+    nodeDrag.current = null;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+    if (drag.moved) {
+      try { localStorage.setItem(layoutKey, JSON.stringify(positionsRef.current)); } catch { /* Keep the current layout in memory. */ }
+    }
+  };
   const [isAddingService, setIsAddingService] = useState(false);
   const [newService, setNewService] = useState<NewServiceDraft>({ name: '', category: '', parentId: 'product' });
   const [drafts, setDrafts] = useState<Record<string, DraftDetails>>(() => Object.fromEntries(nodes.map((service) => [
@@ -939,7 +989,15 @@ export default function InternalServiceMapPage() {
                   key={service.id}
                   className={\`service-node \${selectedId === service.id ? 'is-selected' : ''} \${isRelated ? 'is-related' : ''}\`}
                   style={{ left: \`\${service.x}%\`, top: \`\${service.y}%\` }}
-                  onClick={() => setSelectedId(service.id)}
+                  onPointerDown={(event) => startNodeDrag(event, service)}
+                  onPointerMove={moveNodeDrag}
+                  onPointerUp={stopNodeDrag}
+                  onPointerCancel={stopNodeDrag}
+                  onLostPointerCapture={stopNodeDrag}
+                  onClick={(event) => {
+                    if (event.detail !== 0 && suppressClick.current) { suppressClick.current = false; return; }
+                    setSelectedId(service.id);
+                  }}
                 >
                   <ServiceLogo service={service} />
                   <div className="service-copy">

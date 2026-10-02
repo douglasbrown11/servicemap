@@ -26,6 +26,9 @@ If no website can be found, create a desktop app fallback at `servicemap-desktop
 9. Run the project's relevant build, lint, and focused tests.
    Open the generated map in a browser and verify both 2D and 3D modes.
    Click a service and verify its details panel and animated illuminated dashed connection to its parent.
+   Drag a service and verify that only that node moves and its connections follow, including after zooming.
+   After testing 3D, return the delivered preview to 2D and close any open details panel.
+   Always initialize new maps in 2D; do not persist the last selected view mode.
    Desktop output uses the same interactive component as website output; missing interactions are generator bugs to fix, not controls to remove.
 10. If a website page was created, tell the user it is only local until deployed and ask whether they want to deploy it now.
     Do not deploy unless the user explicitly says yes.
