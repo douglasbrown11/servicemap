@@ -93,12 +93,12 @@ Use `--no-deploy` to skip the prompt.
 
 ## Contents
 
-- `servicemap/`: installable skill folder
+- `SKILL.md`: installable Servicemap skill entrypoint
 - `bin/servicemap.mjs`: npm CLI entrypoint
-- `servicemap/scripts/scan-project.mjs`: scans a project for service evidence
-- `servicemap/scripts/generate-page.mjs`: creates website routes
-- `servicemap/scripts/generate-desktop-app.mjs`: creates the desktop fallback
-- `servicemap/assets/service-logo-database.json`: 1,000 service logo records
+- `scripts/scan-project.mjs`: scans a project for service evidence
+- `scripts/generate-page.mjs`: creates website routes
+- `scripts/generate-desktop-app.mjs`: creates the desktop fallback
+- `assets/service-logo-database.json`: 1,000 service logo records
 
 ## Validation
 
@@ -109,5 +109,5 @@ node bin/servicemap.mjs --dry-run
 node bin/servicemap.mjs install-skill --agent all --dry-run
 node bin/servicemap.mjs install-skill --targets universal,claude,grok --dry-run
 node bin/servicemap.mjs skills install --agent claude --dry-run
-python3 /Users/dougie/.codex/skills/.system/skill-creator/scripts/quick_validate.py servicemap
+python3 /Users/dougie/.codex/skills/.system/skill-creator/scripts/quick_validate.py .
 ```

@@ -11,11 +11,21 @@ import { fileURLToPath } from 'node:url';
 const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const repositoryUrl = 'https://github.com/douglasbrown11/servicemap.git';
 const stableSourceRoot = () => resolve(homedir(), '.servicemap/source');
-const scanScript = resolve(packageRoot, 'servicemap/scripts/scan-project.mjs');
-const pageScript = resolve(packageRoot, 'servicemap/scripts/generate-page.mjs');
-const desktopScript = resolve(packageRoot, 'servicemap/scripts/generate-desktop-app.mjs');
+const skillRoot = packageRoot;
+const scanScript = resolve(skillRoot, 'scripts/scan-project.mjs');
+const pageScript = resolve(skillRoot, 'scripts/generate-page.mjs');
+const desktopScript = resolve(skillRoot, 'scripts/generate-desktop-app.mjs');
 
 const universalRoot = () => resolve(homedir(), '.agents/skills');
+
+function resolveSkillSource(root) {
+  if (existsSync(resolve(root, 'SKILL.md'))) return root;
+
+  const legacyNestedSource = resolve(root, 'servicemap');
+  if (existsSync(resolve(legacyNestedSource, 'SKILL.md'))) return legacyNestedSource;
+
+  return root;
+}
 
 const universalAgents = [
   'Amp',
@@ -633,7 +643,7 @@ async function prepareStableSource(options) {
   const sourceRoot = stableSourceRoot();
   if (options.dryRun) {
     timelineStep(`Would prepare stable source at ${sourceRoot}`);
-    return resolve(sourceRoot, 'servicemap');
+    return resolveSkillSource(sourceRoot);
   }
 
   timelineStep(`Source: ${repositoryUrl}`);
@@ -657,7 +667,7 @@ async function prepareStableSource(options) {
     timelineStep('Repository unavailable; copied packaged source');
   }
 
-  return resolve(sourceRoot, 'servicemap');
+  return resolveSkillSource(sourceRoot);
 }
 
 async function updateStableSource(options) {
@@ -687,11 +697,11 @@ async function installIntoRoot(root, source, method, options) {
 }
 
 async function installSkill(options) {
-  let source = resolve(packageRoot, 'servicemap');
+  let source = resolveSkillSource(skillRoot);
   const method = options.installMethod ?? 'symlink';
 
-  if (!existsSync(source)) {
-    throw new Error(`Bundled skill folder not found: ${source}`);
+  if (!existsSync(resolve(source, 'SKILL.md'))) {
+    throw new Error(`Bundled skill source not found: ${source}`);
   }
 
   if (!['copy', 'symlink'].includes(method)) {
@@ -700,7 +710,7 @@ async function installSkill(options) {
 
   if (method === 'symlink') {
     source = await prepareStableSource(options);
-    if (!existsSync(source) && !options.dryRun) {
+    if (!existsSync(resolve(source, 'SKILL.md')) && !options.dryRun) {
       throw new Error(`Stable skill source not found: ${source}`);
     }
   }
