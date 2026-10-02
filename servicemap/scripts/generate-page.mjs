@@ -83,7 +83,7 @@ function pageCss() {
     .intro span { display: block; margin-top: 8px; color: #53665d; font-size: 14px; }
     .edges { position: absolute; inset: 0; z-index: 26; width: 100%; height: 100%; pointer-events: none; }
     .edge-line { transition: opacity 180ms ease, stroke 180ms ease; }
-    .edge-line.is-active { stroke: #65f0ad !important; stroke-width: 3px; stroke-linecap: round; stroke-dasharray: 10 8; animation: servicemapDash .74s linear infinite; filter: drop-shadow(0 0 9px rgba(101,240,173,0.9)) drop-shadow(0 0 18px rgba(101,240,173,0.45)); opacity: 1; }
+    .edge-line.is-active { stroke: #7ee2b8; stroke-width: 2.4px; stroke-dasharray: 5 5; animation: servicemapDash .5s linear infinite; filter: drop-shadow(0 0 5px rgba(126,226,184,.55)); opacity: 1; }
     .edge-line.is-muted { opacity: 0.12; }
     .hub { position: absolute; left: 50%; top: 50%; z-index: 20; width: 132px; height: 132px; transform: translate(-50%, -50%); border-radius: 24px; border: 1px solid #315c47; background: #09120d; display: grid; place-items: center; box-shadow: 0 0 0 9px rgba(79,183,128,0.12), 0 0 42px rgba(100,255,174,0.16); }
     .hub-inner { width: 92px; height: 92px; border-radius: 18px; background: #fbfbf7; color: #111612; display: grid; place-items: center; font-size: 40px; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.08); }
@@ -155,7 +155,8 @@ function pageCss() {
     .graph-3d__zoom button + button { border-top: 1px solid rgba(255,255,255,.08); }
     .graph-3d__zoom button:hover { color: #fff; background: rgba(255,255,255,.08); }
     .graph-3d__loading { position: absolute; inset: 0; display: grid; place-items: center; color: #75857c; font-size: 9px; }
-    @keyframes servicemapDash { to { stroke-dashoffset: -1.3; } }
+    @keyframes servicemapDash { from { stroke-dashoffset: 10; } to { stroke-dashoffset: 0; } }
+    @media (prefers-reduced-motion: reduce) { .edge-line.is-active { animation: none; } }
     @keyframes servicemapLinkFlow { to { background-position: 22px 0; } }
     @media (max-width: 920px) {
       .map { min-height: 1120px; }
@@ -308,17 +309,36 @@ function initials(name: string) {
   return name.split(/\\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join('').toUpperCase();
 }
 
-function edgePath(node: ServiceNode) {
-  return edgePathBetween({ x: 50, y: 50 }, node);
-}
-
-function edgePathBetween(parent: { x: number; y: number }, node: ServiceNode) {
-  const isLeft = node.x < 50;
-  const fromX = parent.x;
-  const fromY = parent.y;
-  const endX = isLeft ? node.x + 8 : node.x - 8;
-  const midX = (fromX + endX) / 2;
-  return \`M \${fromX} \${fromY} H \${midX} V \${node.y} H \${endX}\`;
+function Connections({ nodes, selectedId }: { nodes: ServiceNode[]; selectedId: string | null }) {
+  const ref = useRef<SVGSVGElement>(null);
+  const [size, setSize] = useState({ width: 0, height: 0, nodeHalfWidth: 125 });
+  useEffect(() => {
+    if (!ref.current) return;
+    const observer = new ResizeObserver(([entry]) => {
+      const node = ref.current?.parentElement?.querySelector('.service-node');
+      const nodeHalfWidth = node ? parseFloat(getComputedStyle(node).width) / 2 : 125;
+      setSize({ width: entry.contentRect.width, height: entry.contentRect.height, nodeHalfWidth });
+    });
+    observer.observe(ref.current);
+    return () => observer.disconnect();
+  }, []);
+  return <svg ref={ref} className="edges" aria-hidden="true">
+    {size.width > 0 && nodes.map((node) => {
+      const parent = nodes.find((candidate) => candidate.id === node.parentId);
+      const direction = node.x < (parent?.x ?? 50) ? -1 : 1;
+      const x1 = (parent?.x ?? 50) * size.width / 100 + direction * (parent ? size.nodeHalfWidth : 66);
+      const y1 = (parent?.y ?? 50) * size.height / 100;
+      const x2 = node.x * size.width / 100 - direction * size.nodeHalfWidth;
+      const y2 = node.y * size.height / 100;
+      const middle = (x1 + x2) / 2;
+      const dx = Math.sign(x2 - x1);
+      const dy = Math.sign(y2 - y1);
+      const radius = Math.min(5, Math.abs(x2 - x1) / 4, Math.abs(y2 - y1) / 2);
+      const path = \`M \${x1} \${y1} H \${middle - dx * radius} Q \${middle} \${y1} \${middle} \${y1 + dy * radius} V \${y2 - dy * radius} Q \${middle} \${y2} \${middle + dx * radius} \${y2} H \${x2}\`;
+      const active = selectedId === node.id || selectedId === node.parentId;
+      return <path key={node.id} d={path} fill="none" stroke="rgba(103,130,118,.48)" strokeWidth="1.2" className={\`edge-line \${active ? 'is-active' : selectedId ? 'is-muted' : ''}\`} />;
+    })}
+  </svg>;
 }
 
 function primaryEvidence(service: RawService) {
@@ -816,7 +836,6 @@ export default function InternalServiceMapPage() {
     },
   ])));
   const selected = nodes.find((service) => service.id === selectedId) ?? null;
-  const nodeById = useMemo(() => new Map(nodes.map((node) => [node.id, node])), [nodes]);
   const zoomIn = () => setZoom((current) => Math.min(1.45, Number((current + 0.12).toFixed(2))));
   const zoomOut = () => setZoom((current) => Math.max(0.7, Number((current - 0.12).toFixed(2))));
   const resetZoom = () => {
@@ -910,25 +929,7 @@ export default function InternalServiceMapPage() {
         {mode === '2d' ? (
           <>
             <div className="map-plane" style={{ '--zoom': zoom, '--pan-x': \`\${pan.x}px\`, '--pan-y': \`\${pan.y}px\` } as CSSProperties}>
-              <svg className="edges" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-                {nodes.map((service) => {
-                  const parent = service.parentId ? nodeById.get(service.parentId) : null;
-                  const isActive = selectedId === service.id || selectedId === service.parentId;
-                  return (
-                  <path
-                    key={service.id}
-                    className={\`edge-line \${isActive ? 'is-active' : selectedId ? 'is-muted' : ''}\`}
-                    d={parent ? edgePathBetween(parent, service) : edgePath(service)}
-                    fill="none"
-                    stroke={isActive ? '#65f0ad' : 'rgba(103, 130, 118, 0.48)'}
-                    strokeWidth={isActive ? '3' : '0.16'}
-                    strokeDasharray={isActive ? '10 8' : undefined}
-                    strokeLinecap={isActive ? 'round' : undefined}
-                    vectorEffect="non-scaling-stroke"
-                  />
-                  );
-                })}
-              </svg>
+              <Connections nodes={nodes} selectedId={selectedId} />
               <div className="hub"><div className="hub-inner"><ProjectMark /></div></div>
               {nodes.map((service) => {
                 const isRelated = selectedId === service.parentId || selected?.parentId === service.id;
