@@ -24,6 +24,9 @@ If no website can be found, create a desktop app fallback at `servicemap-desktop
 7. If the scan reports `framework: static` or no website route can be safely attached, run `scripts/generate-desktop-app.mjs --root <project-root>` to create `servicemap-desktop`.
 8. Adapt the generated surface to the project's existing design system only when the route is clear and the edits are low-risk.
 9. Run the project's relevant build, lint, and focused tests.
+   Open the generated map in a browser and verify both 2D and 3D modes.
+   Click a service and verify its details panel and animated illuminated dashed connection to its parent.
+   Desktop output uses the same interactive component as website output; missing interactions are generator bugs to fix, not controls to remove.
 10. If a website page was created, tell the user it is only local until deployed and ask whether they want to deploy it now.
     Do not deploy unless the user explicitly says yes.
     If they approve, use the project's existing deployment path, preferring `npm run deploy` when present, then provider-specific project configuration such as Vercel or Netlify.

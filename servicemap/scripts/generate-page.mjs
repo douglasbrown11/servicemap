@@ -2,6 +2,7 @@
 import { existsSync } from 'node:fs';
 import { copyFile, mkdir, readFile, writeFile } from 'node:fs/promises';
 import { spawn } from 'node:child_process';
+import { pathToFileURL } from 'node:url';
 import { dirname, extname, isAbsolute, join, resolve } from 'node:path';
 
 const defaultInput = '.servicemap/internal-servicemap.json';
@@ -159,7 +160,9 @@ function pageCss() {
     @media (max-width: 920px) {
       .map { min-height: 1120px; }
       .service-node { width: 220px; }
-      .top-actions { display: none; }
+      .servicemap-topbar { height: auto; min-height: 88px; flex-wrap: wrap; padding: 14px; }
+      .top-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+      .top-actions > span { display: none; }
       .details-panel { position: fixed; inset: auto 12px 12px; top: 110px; width: auto; }
     }
   `;
@@ -271,10 +274,10 @@ ${htmlBody(graph)}
 `;
 }
 
-function interactiveTsxPage(graph) {
+export function interactiveTsxPage(graph, { desktop = false } = {}) {
   return `'use client';
 
-import dynamic from 'next/dynamic';
+${desktop ? "import ForceGraph3D from 'react-force-graph-3d';" : "import dynamic from 'next/dynamic';"}
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent } from 'react';
 import type { ForceGraphMethods, NodeObject } from 'react-force-graph-3d';
 import * as THREE from 'three';
@@ -295,7 +298,7 @@ type OrbitControlsLike = { target?: THREE.Vector3 };
 const graph = ${JSON.stringify(graph)} as { generatedAt: string; project?: { name?: string; logoUrl?: string }; services?: RawService[] };
 const palette = ${JSON.stringify(palette)} as string[];
 const layout = ${JSON.stringify(layout)} as Array<{ x: number; y: number }>;
-const ForceGraph3D = dynamic(() => import('react-force-graph-3d'), { ssr: false });
+${desktop ? '' : "const ForceGraph3D = dynamic(() => import('react-force-graph-3d'), { ssr: false });"}
 
 function categoryLabel(value?: string | null) {
   return String(value ?? 'service').replace(/-/g, ' ');
@@ -691,7 +694,11 @@ function ServiceGraph3D({
     hasFramed.current = false;
     hasConfiguredForces.current = false;
     const frame = window.requestAnimationFrame(configureForces);
-    return () => window.cancelAnimationFrame(frame);
+    const initialFit = window.setTimeout(() => graphRef.current?.zoomToFit(400, 100), 350);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.clearTimeout(initialFit);
+    };
   }, [configureForces, graphData.nodes.length, graphData.links.length]);
 
   const focusNode = useCallback((node: NodeObject) => {
@@ -1037,7 +1044,7 @@ const html = ${JSON.stringify(htmlBody(graph))};
 `;
 }
 
-async function prepareProjectLogo(graph, outputRoot) {
+export async function prepareProjectLogo(graph, outputRoot) {
   const logoPath = graph.project?.logo?.path;
   if (!logoPath) return;
 
@@ -1115,7 +1122,7 @@ async function main() {
   console.log(`Wrote /internalservicemap page to ${route.path}`);
 }
 
-main().catch((error) => {
+if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) main().catch((error) => {
   console.error(error);
   process.exit(1);
 });
