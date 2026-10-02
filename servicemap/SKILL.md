@@ -25,7 +25,7 @@ If no website can be found, create a desktop app fallback at `servicemap-desktop
 8. Adapt the generated surface to the project's existing design system only when the route is clear and the edits are low-risk.
 9. Run the project's relevant build, lint, and focused tests.
    Open the generated map in a browser and verify both 2D and 3D modes.
-   Click a service and verify its details panel and animated illuminated dashed connection to its parent.
+   Click a product or service and verify its details panel and animated illuminated dashed child-branch connections.
    Drag a service and verify that only that node moves and its connections follow, including after zooming.
    After testing 3D, return the delivered preview to 2D and close any open details panel.
    Always initialize new maps in 2D; do not persist the last selected view mode.

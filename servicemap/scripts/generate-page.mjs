@@ -71,6 +71,8 @@ function pageCss() {
     .brand p, .top-meta { margin: 6px 0 0; color: #8aa097; font-size: 14px; }
     .top-actions { display: flex; align-items: center; gap: 12px; color: #8da59a; font-size: 14px; white-space: nowrap; }
     .add-service-button { min-height: 40px; border: 0; border-radius: 10px; background: #287a5a; color: #effbf5; padding: 0 14px; cursor: pointer; font: inherit; font-weight: 800; box-shadow: 0 10px 28px rgba(54,180,126,0.16); }
+    .center-button { width: 48px; height: 48px; border: 1px solid rgba(255,255,255,0.1); border-radius: 14px; background: #0b130f; color: #b4c9bf; display: grid; place-items: center; cursor: pointer; box-shadow: 0 0 0 7px rgba(47,128,91,.16); }
+    .center-button:hover { border-color: rgba(101,240,173,.42); color: #d9f8e8; box-shadow: 0 0 0 7px rgba(47,128,91,.2), 0 0 22px rgba(101,240,173,.14); }
     .mode-toggle { display: inline-flex; gap: 4px; padding: 4px; border-radius: 10px; background: #0b130f; }
     .mode-button { min-height: 36px; border: 0; border-radius: 8px; background: transparent; color: #789086; padding: 0 12px; cursor: pointer; font: inherit; font-weight: 800; }
     .mode-button.is-active { background: #276f53; color: #c9f9df; box-shadow: 0 0 18px rgba(101,240,173,0.16); }
@@ -86,6 +88,8 @@ function pageCss() {
     .edge-line.is-active { stroke: #7ee2b8; stroke-width: 2.4px; stroke-dasharray: 5 5; animation: servicemapDash .5s linear infinite; filter: drop-shadow(0 0 5px rgba(126,226,184,.55)); opacity: 1; }
     .edge-line.is-muted { opacity: 0.12; }
     .hub { position: absolute; left: 50%; top: 50%; z-index: 20; width: 132px; height: 132px; transform: translate(-50%, -50%); border-radius: 24px; border: 1px solid #315c47; background: #09120d; display: grid; place-items: center; box-shadow: 0 0 0 9px rgba(79,183,128,0.12), 0 0 42px rgba(100,255,174,0.16); }
+    button.hub { cursor: pointer; }
+    .hub.is-selected, button.hub:hover { border-color: #66efae; box-shadow: 0 0 0 9px rgba(79,183,128,0.12), 0 0 0 2px rgba(101,240,173,0.42), 0 0 52px rgba(100,255,174,0.24); }
     .hub-inner { width: 92px; height: 92px; border-radius: 18px; background: #fbfbf7; color: #111612; display: grid; place-items: center; font-size: 40px; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.08); }
     .service-node { position: absolute; z-index: 10; width: 250px; height: 74px; transform: translate(-50%, -50%); display: flex; align-items: center; gap: 16px; padding: 0 16px; border-radius: 8px; border: 1px solid #274036; background: rgba(16,24,19,0.95); box-shadow: 0 0 0 1px rgba(140,255,190,0.05), 0 18px 44px rgba(0,0,0,0.38); }
     button.service-node { cursor: grab; touch-action: none; user-select: none; color: inherit; font: inherit; text-align: left; }
@@ -111,6 +115,10 @@ function pageCss() {
     .zoom-button:last-child { border-bottom: 0; font-size: 18px; }
     .zoom-button:hover { background: rgba(101,240,173,0.1); color: #d8f8e8; }
     .fit-icon { display: inline-block; width: 15px; height: 15px; border: 2px solid currentColor; border-radius: 3px; }
+    .center-icon { position: relative; width: 21px; height: 21px; border: 2px solid currentColor; border-radius: 999px; }
+    .center-icon::before, .center-icon::after { content: ''; position: absolute; background: currentColor; }
+    .center-icon::before { left: 50%; top: -5px; bottom: -5px; width: 2px; transform: translateX(-50%); }
+    .center-icon::after { top: 50%; left: -5px; right: -5px; height: 2px; transform: translateY(-50%); }
     .scan-foot { position: absolute; right: 32px; bottom: 32px; z-index: 20; color: #53665d; text-align: right; font-size: 12px; line-height: 1.6; }
     .access-warning { position: absolute; left: 32px; right: 32px; bottom: 88px; z-index: 25; max-width: 720px; border: 1px solid rgba(241,200,91,0.42); border-radius: 8px; background: rgba(31,27,12,0.92); color: #f7daa0; padding: 12px 14px; font-size: 14px; line-height: 1.45; }
     .drawer-scrim { position: absolute; inset: 0; z-index: 18; background: rgba(0,0,0,0.58); pointer-events: none; }
@@ -311,9 +319,36 @@ function initials(name: string) {
   return name.split(/\\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join('').toUpperCase();
 }
 
+function collectDescendantIds(nodes: ServiceNode[], selectedId: string | null) {
+  const ids = new Set<string>();
+  if (!selectedId) return ids;
+  const childrenByParent = new Map<string, ServiceNode[]>();
+  nodes.forEach((node) => {
+    const parentId = node.parentId ?? 'project';
+    const siblings = childrenByParent.get(parentId) ?? [];
+    siblings.push(node);
+    childrenByParent.set(parentId, siblings);
+  });
+  const queue = [...(childrenByParent.get(selectedId) ?? [])];
+  while (queue.length) {
+    const node = queue.shift()!;
+    if (ids.has(node.id)) continue;
+    ids.add(node.id);
+    queue.push(...(childrenByParent.get(node.id) ?? []));
+  }
+  return ids;
+}
+
+function isActiveTreeEdge(sourceId: string, targetId: string, selectedId: string | null, descendantIds: Set<string>) {
+  if (!selectedId) return false;
+  if (sourceId === selectedId && descendantIds.has(targetId)) return true;
+  return descendantIds.has(sourceId) && descendantIds.has(targetId);
+}
+
 function Connections({ nodes, selectedId }: { nodes: ServiceNode[]; selectedId: string | null }) {
   const ref = useRef<SVGSVGElement>(null);
   const [size, setSize] = useState({ width: 0, height: 0, nodeHalfWidth: 125 });
+  const descendantIds = useMemo(() => collectDescendantIds(nodes, selectedId), [nodes, selectedId]);
   useEffect(() => {
     if (!ref.current) return;
     const observer = new ResizeObserver(([entry]) => {
@@ -337,7 +372,7 @@ function Connections({ nodes, selectedId }: { nodes: ServiceNode[]; selectedId: 
       const dy = Math.sign(y2 - y1);
       const radius = Math.min(5, Math.abs(x2 - x1) / 4, Math.abs(y2 - y1) / 2);
       const path = \`M \${x1} \${y1} H \${middle - dx * radius} Q \${middle} \${y1} \${middle} \${y1 + dy * radius} V \${y2 - dy * radius} Q \${middle} \${y2} \${middle + dx * radius} \${y2} H \${x2}\`;
-      const active = selectedId === node.id || selectedId === node.parentId;
+      const active = isActiveTreeEdge(node.parentId ?? 'project', node.id, selectedId, descendantIds);
       return <path key={node.id} d={path} fill="none" stroke="rgba(103,130,118,.48)" strokeWidth="1.2" className={\`edge-line \${active ? 'is-active' : selectedId ? 'is-muted' : ''}\`} />;
     })}
   </svg>;
@@ -640,10 +675,12 @@ function AddServiceModal({
 function ServiceGraph3D({
   nodes,
   selectedId,
+  resetKey,
   onSelect,
 }: {
   nodes: ServiceNode[];
   selectedId: string | null;
+  resetKey: number;
   onSelect: (id: string | null) => void;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -676,19 +713,16 @@ function ServiceGraph3D({
       label: node.confidence === 'high' ? relationshipLabel(node.parentId) : \`may \${relationshipLabel(node.parentId)}\`,
     })),
   }), [nodes]);
-
-  const activeIds = useMemo(() => {
+  const descendantIds = useMemo(() => collectDescendantIds(nodes, selectedId), [nodes, selectedId]);
+  const activeTreeLinkIds = useMemo(() => {
     const ids = new Set<string>();
-    if (!selectedId) return ids;
-    ids.add(selectedId);
     graphData.links.forEach((link) => {
       const source = endpointId(link.source);
       const target = endpointId(link.target);
-      if (source === selectedId) ids.add(target);
-      if (target === selectedId) ids.add(source);
+      if (isActiveTreeEdge(source, target, selectedId, descendantIds)) ids.add(link.id);
     });
     return ids;
-  }, [graphData.links, selectedId]);
+  }, [descendantIds, graphData.links, selectedId]);
 
   useEffect(() => {
     const element = containerRef.current;
@@ -722,6 +756,11 @@ function ServiceGraph3D({
       window.clearTimeout(initialFit);
     };
   }, [configureForces, graphData.nodes.length, graphData.links.length]);
+
+  useEffect(() => {
+    if (!resetKey) return;
+    graphRef.current?.zoomToFit(700, 130);
+  }, [resetKey]);
 
   const focusNode = useCallback((node: NodeObject) => {
     const serviceNode = graphNode(node);
@@ -775,22 +814,22 @@ function ServiceGraph3D({
         linkColor={(link) => {
           const serviceLink = graphLink(link as GraphLink3D);
           if (!selectedId) return '#415149';
-          return endpointId(serviceLink.source) === selectedId || endpointId(serviceLink.target) === selectedId ? '#7ee2b8' : '#17211c';
+          return activeTreeLinkIds.has(serviceLink.id) ? '#7ee2b8' : '#17211c';
         }}
         linkWidth={(link) => {
           const serviceLink = graphLink(link as GraphLink3D);
-          return endpointId(serviceLink.source) === selectedId || endpointId(serviceLink.target) === selectedId ? 2.2 : selectedId ? 0.35 : 0.8;
+          return activeTreeLinkIds.has(serviceLink.id) ? 2.2 : selectedId ? 0.35 : 0.8;
         }}
         linkOpacity={0.8}
         linkDirectionalArrowLength={3.5}
         linkDirectionalArrowRelPos={0.8}
         linkDirectionalArrowColor={(link) => {
           const serviceLink = graphLink(link as GraphLink3D);
-          return endpointId(serviceLink.source) === selectedId || endpointId(serviceLink.target) === selectedId ? '#9ff0cb' : '#506158';
+          return activeTreeLinkIds.has(serviceLink.id) ? '#9ff0cb' : '#506158';
         }}
         linkDirectionalParticles={(link) => {
           const serviceLink = graphLink(link as GraphLink3D);
-          return endpointId(serviceLink.source) === selectedId || endpointId(serviceLink.target) === selectedId ? 3 : 0;
+          return activeTreeLinkIds.has(serviceLink.id) ? 3 : 0;
         }}
         linkDirectionalParticleWidth={1.8}
         linkDirectionalParticleSpeed={0.006}
@@ -813,7 +852,7 @@ function ServiceGraph3D({
         <button type="button" onClick={() => zoom(1.5)} title="Zoom out" aria-label="Zoom out">−</button>
       </div>
       <div className="graph-3d__help" aria-hidden="true">Drag to rotate <span /> Scroll to zoom <span /> Click a service</div>
-      {selectedId && <div className="graph-3d__focus" aria-hidden="true">{Math.max(activeIds.size - 1, 0)} direct connections highlighted</div>}
+      {selectedId && <div className="graph-3d__focus" aria-hidden="true">{activeTreeLinkIds.size} child connections highlighted</div>}
     </div>
   );
 }
@@ -847,6 +886,7 @@ export default function InternalServiceMapPage() {
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [panStart, setPanStart] = useState<{ pointerId: number; x: number; y: number; panX: number; panY: number } | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [reset3DKey, setReset3DKey] = useState(0);
   const startNodeDrag = (event: PointerEvent<HTMLButtonElement>, node: ServiceNode) => {
     if (event.button !== 0) return;
     event.stopPropagation();
@@ -890,11 +930,19 @@ export default function InternalServiceMapPage() {
     },
   ])));
   const selected = nodes.find((service) => service.id === selectedId) ?? null;
+  const descendantIds = useMemo(() => collectDescendantIds(nodes, selectedId), [nodes, selectedId]);
   const zoomIn = () => setZoom((current) => Math.min(1.45, current * 1.5));
   const zoomOut = () => setZoom((current) => current / 1.5);
   const resetZoom = () => {
     setZoom(1);
     setPan({ x: 0, y: 0 });
+  };
+  const centerMap = () => {
+    if (mode === '3d') {
+      setReset3DKey((current) => current + 1);
+      return;
+    }
+    resetZoom();
   };
   const startPan = (event: PointerEvent<HTMLElement>) => {
     if (mode !== '2d' || event.button !== 0 || (event.target as HTMLElement).closest('button, a, input, textarea, select')) return;
@@ -961,11 +1009,12 @@ export default function InternalServiceMapPage() {
         </div>
         <div className="top-actions">
           <span>{nodes.length} services</span>
-          <button type="button" className="add-service-button" onClick={() => setIsAddingService(true)}>+ Add service</button>
           <div className="mode-toggle" aria-label="View mode">
             <button type="button" className={\`mode-button \${mode === '2d' ? 'is-active' : ''}\`} onClick={() => setMode('2d')}>2D</button>
             <button type="button" className={\`mode-button \${mode === '3d' ? 'is-active' : ''}\`} onClick={() => setMode('3d')}>3D</button>
           </div>
+          <button type="button" className="center-button" onClick={centerMap} aria-label="Center graph" title="Center graph"><span className="center-icon" aria-hidden="true" /></button>
+          <button type="button" className="add-service-button" onClick={() => setIsAddingService(true)}>+ Add service</button>
         </div>
       </header>
 
@@ -978,15 +1027,15 @@ export default function InternalServiceMapPage() {
       >
         <div className="intro">
           <strong>{graph.project?.name ?? 'Project'} infrastructure</strong>
-          <span>{selected ? \`Tracing \${selected.name}\` : mode === '3d' ? 'Rotate and explore your service relationships' : 'Select a service to trace its dependencies'}</span>
+          <span>{selected ? \`Tracing \${selected.name}\` : selectedId === 'project' ? \`Tracing \${graph.project?.name ?? 'Project'}\` : mode === '3d' ? 'Rotate and explore your service relationships' : 'Select a service to trace its dependencies'}</span>
         </div>
         {mode === '2d' ? (
           <>
             <div className="map-plane" style={{ '--zoom': zoom, '--pan-x': \`\${pan.x}px\`, '--pan-y': \`\${pan.y}px\` } as CSSProperties}>
               <Connections nodes={nodes} selectedId={selectedId} />
-              <div className="hub"><div className="hub-inner"><ProjectMark /></div></div>
+              <button type="button" className={\`hub \${selectedId === 'project' ? 'is-selected' : ''}\`} onClick={() => setSelectedId('project')} aria-label={\`Trace \${graph.project?.name ?? 'Project'} child services\`}><div className="hub-inner"><ProjectMark /></div></button>
               {nodes.map((service) => {
-                const isRelated = selectedId === service.parentId || selected?.parentId === service.id;
+                const isRelated = descendantIds.has(service.id) || selected?.parentId === service.id;
                 return (
                 <button
                   type="button"
@@ -1020,7 +1069,7 @@ export default function InternalServiceMapPage() {
             </div>
           </>
         ) : (
-          <ServiceGraph3D nodes={nodes} selectedId={selectedId} onSelect={setSelectedId} />
+          <ServiceGraph3D nodes={nodes} selectedId={selectedId} resetKey={reset3DKey} onSelect={setSelectedId} />
         )}
         <div className="zoom-controls" aria-label="Map zoom controls">
           <button type="button" className="zoom-button" onClick={zoomIn} aria-label="Zoom in">+</button>
