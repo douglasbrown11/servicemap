@@ -745,7 +745,11 @@ function ServiceGraph3D({
     const offset = camera.position.clone().sub(target);
     const currentDistance = offset.length();
     if (currentDistance === 0) return;
-    const nextDistance = THREE.MathUtils.clamp(currentDistance * factor, 35, 1200);
+    const nextDistance = Math.max(35, currentDistance * factor);
+    if (camera instanceof THREE.PerspectiveCamera && nextDistance * 4 > camera.far) {
+      camera.far = nextDistance * 4;
+      camera.updateProjectionMatrix();
+    }
     const nextPosition = target.clone().add(offset.multiplyScalar(nextDistance / currentDistance));
     graphInstance.cameraPosition(nextPosition, target, 240);
   }, []);
@@ -805,8 +809,8 @@ function ServiceGraph3D({
         }}
       />
       <div className="graph-3d__zoom" aria-label="3D zoom controls">
-        <button type="button" onClick={() => zoom(0.78)} title="Zoom in" aria-label="Zoom in">+</button>
-        <button type="button" onClick={() => zoom(1.28)} title="Zoom out" aria-label="Zoom out">−</button>
+        <button type="button" onClick={() => zoom(1 / 1.5)} title="Zoom in" aria-label="Zoom in">+</button>
+        <button type="button" onClick={() => zoom(1.5)} title="Zoom out" aria-label="Zoom out">−</button>
       </div>
       <div className="graph-3d__help" aria-hidden="true">Drag to rotate <span /> Scroll to zoom <span /> Click a service</div>
       {selectedId && <div className="graph-3d__focus" aria-hidden="true">{Math.max(activeIds.size - 1, 0)} direct connections highlighted</div>}
@@ -886,8 +890,8 @@ export default function InternalServiceMapPage() {
     },
   ])));
   const selected = nodes.find((service) => service.id === selectedId) ?? null;
-  const zoomIn = () => setZoom((current) => Math.min(1.45, Number((current + 0.12).toFixed(2))));
-  const zoomOut = () => setZoom((current) => Math.max(0.7, Number((current - 0.12).toFixed(2))));
+  const zoomIn = () => setZoom((current) => Math.min(1.45, current * 1.5));
+  const zoomOut = () => setZoom((current) => current / 1.5);
   const resetZoom = () => {
     setZoom(1);
     setPan({ x: 0, y: 0 });
