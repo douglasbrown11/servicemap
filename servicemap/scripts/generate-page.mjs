@@ -85,7 +85,7 @@ function pageCss() {
     .intro span { display: block; margin-top: 8px; color: #53665d; font-size: 14px; }
     .edges { position: absolute; inset: 0; z-index: 26; width: 100%; height: 100%; pointer-events: none; }
     .edge-line { transition: opacity 180ms ease, stroke 180ms ease; }
-    .edge-line.is-active { stroke: #7ee2b8; stroke-width: 2.4px; stroke-dasharray: 5 5; animation: servicemapDash .5s linear infinite; filter: drop-shadow(0 0 5px rgba(126,226,184,.55)); opacity: 1; }
+    .edge-line.is-active { stroke: #7ee2b8; stroke-width: 2.4px; stroke-dasharray: 1 9; stroke-linecap: round; animation: servicemapDash 640ms linear infinite; filter: drop-shadow(0 0 5px rgba(126,226,184,.9)) drop-shadow(0 0 16px rgba(93,224,165,.42)); opacity: 1; }
     .edge-line.is-muted { opacity: 0.12; }
     .hub { position: absolute; left: 50%; top: 50%; z-index: 20; width: 132px; height: 132px; transform: translate(-50%, -50%); border-radius: 24px; border: 1px solid #315c47; background: #09120d; display: grid; place-items: center; box-shadow: 0 0 0 9px rgba(79,183,128,0.12), 0 0 42px rgba(100,255,174,0.16); }
     button.hub { cursor: pointer; }
@@ -95,10 +95,11 @@ function pageCss() {
     button.service-node { cursor: grab; touch-action: none; user-select: none; color: inherit; font: inherit; text-align: left; }
     button.service-node:active { cursor: grabbing; }
     .service-node img { pointer-events: none; }
-    .service-node:hover, .service-node.is-selected { border-color: #66efae; box-shadow: 0 0 0 2px rgba(101,240,173,0.42), 0 18px 44px rgba(0,0,0,0.38); }
+    .service-node:hover, .service-node.is-selected, .service-node.is-highlighted-child { border-color: #66efae; box-shadow: 0 0 0 2px rgba(101,240,173,0.42), 0 18px 44px rgba(0,0,0,0.38); }
+    .service-node.is-highlighted-child { box-shadow: 0 0 0 1px rgba(126,226,184,.36), 0 18px 44px rgba(0,0,0,0.38), 0 0 34px rgba(126,226,184,.18); }
     .map.has-selection .service-node { opacity: 0.16; }
     .map.has-selection .service-node.is-related { opacity: 0.48; }
-    .map.has-selection .service-node.is-selected { opacity: 1; }
+    .map.has-selection .service-node.is-selected, .map.has-selection .service-node.is-highlighted-child { opacity: 1; }
     .service-node.is-selected { z-index: 27; }
     .logo { width: 48px; height: 48px; flex: 0 0 auto; border-radius: 8px; display: grid; place-items: center; overflow: hidden; color: #fff; font-weight: 700; }
     .logo img { width: 28px; height: 28px; object-fit: contain; filter: invert(1); }
@@ -165,7 +166,7 @@ function pageCss() {
     .graph-3d__zoom button + button { border-top: 1px solid rgba(255,255,255,.08); }
     .graph-3d__zoom button:hover { color: #fff; background: rgba(255,255,255,.08); }
     .graph-3d__loading { position: absolute; inset: 0; display: grid; place-items: center; color: #75857c; font-size: 9px; }
-    @keyframes servicemapDash { from { stroke-dashoffset: 10; } to { stroke-dashoffset: 0; } }
+    @keyframes servicemapDash { to { stroke-dashoffset: -10; } }
     @media (prefers-reduced-motion: reduce) { .edge-line.is-active { animation: none; } }
     @keyframes servicemapLinkFlow { to { background-position: 22px 0; } }
     @media (max-width: 920px) {
@@ -339,15 +340,27 @@ function collectDescendantIds(nodes: ServiceNode[], selectedId: string | null) {
   return ids;
 }
 
-function isActiveTreeEdge(sourceId: string, targetId: string, selectedId: string | null, descendantIds: Set<string>) {
+function collectParentIds(nodes: ServiceNode[], selectedId: string | null) {
+  const ids = new Set<string>();
+  if (!selectedId) return ids;
+  nodes.forEach((node) => {
+    const parentId = node.parentId ?? 'project';
+    if (node.id === selectedId) ids.add(parentId);
+  });
+  return ids;
+}
+
+function isActiveTreeEdge(sourceId: string, targetId: string, selectedId: string | null, parentIds: Set<string>, descendantIds: Set<string>) {
   if (!selectedId) return false;
   if (sourceId === selectedId && descendantIds.has(targetId)) return true;
-  return descendantIds.has(sourceId) && descendantIds.has(targetId);
+  if (descendantIds.has(sourceId) && descendantIds.has(targetId)) return true;
+  return parentIds.has(sourceId) && targetId === selectedId;
 }
 
 function Connections({ nodes, selectedId }: { nodes: ServiceNode[]; selectedId: string | null }) {
   const ref = useRef<SVGSVGElement>(null);
   const [size, setSize] = useState({ width: 0, height: 0, nodeHalfWidth: 125 });
+  const parentIds = useMemo(() => collectParentIds(nodes, selectedId), [nodes, selectedId]);
   const descendantIds = useMemo(() => collectDescendantIds(nodes, selectedId), [nodes, selectedId]);
   useEffect(() => {
     if (!ref.current) return;
@@ -372,7 +385,7 @@ function Connections({ nodes, selectedId }: { nodes: ServiceNode[]; selectedId: 
       const dy = Math.sign(y2 - y1);
       const radius = Math.min(5, Math.abs(x2 - x1) / 4, Math.abs(y2 - y1) / 2);
       const path = \`M \${x1} \${y1} H \${middle - dx * radius} Q \${middle} \${y1} \${middle} \${y1 + dy * radius} V \${y2 - dy * radius} Q \${middle} \${y2} \${middle + dx * radius} \${y2} H \${x2}\`;
-      const active = isActiveTreeEdge(node.parentId ?? 'project', node.id, selectedId, descendantIds);
+      const active = isActiveTreeEdge(node.parentId ?? 'project', node.id, selectedId, parentIds, descendantIds);
       return <path key={node.id} d={path} fill="none" stroke="rgba(103,130,118,.48)" strokeWidth="1.2" className={\`edge-line \${active ? 'is-active' : selectedId ? 'is-muted' : ''}\`} />;
     })}
   </svg>;
@@ -649,7 +662,7 @@ function AddServiceModal({
             placeholder="billing, hosting, analytics"
           />
 
-          <label className="field-label" htmlFor="new-service-parent">Parent node</label>
+          <label className="field-label" htmlFor="new-service-parent">Parent service</label>
           <select
             id="new-service-parent"
             className="details-input"
@@ -713,16 +726,17 @@ function ServiceGraph3D({
       label: node.confidence === 'high' ? relationshipLabel(node.parentId) : \`may \${relationshipLabel(node.parentId)}\`,
     })),
   }), [nodes]);
+  const parentIds = useMemo(() => collectParentIds(nodes, selectedId), [nodes, selectedId]);
   const descendantIds = useMemo(() => collectDescendantIds(nodes, selectedId), [nodes, selectedId]);
   const activeTreeLinkIds = useMemo(() => {
     const ids = new Set<string>();
     graphData.links.forEach((link) => {
       const source = endpointId(link.source);
       const target = endpointId(link.target);
-      if (isActiveTreeEdge(source, target, selectedId, descendantIds)) ids.add(link.id);
+      if (isActiveTreeEdge(source, target, selectedId, parentIds, descendantIds)) ids.add(link.id);
     });
     return ids;
-  }, [descendantIds, graphData.links, selectedId]);
+  }, [descendantIds, graphData.links, parentIds, selectedId]);
 
   useEffect(() => {
     const element = containerRef.current;
@@ -852,7 +866,7 @@ function ServiceGraph3D({
         <button type="button" onClick={() => zoom(1.5)} title="Zoom out" aria-label="Zoom out">−</button>
       </div>
       <div className="graph-3d__help" aria-hidden="true">Drag to rotate <span /> Scroll to zoom <span /> Click a service</div>
-      {selectedId && <div className="graph-3d__focus" aria-hidden="true">{activeTreeLinkIds.size} child connections highlighted</div>}
+      {selectedId && <div className="graph-3d__focus" aria-hidden="true">{activeTreeLinkIds.size} connections highlighted</div>}
     </div>
   );
 }
@@ -931,6 +945,7 @@ export default function InternalServiceMapPage() {
   ])));
   const selected = nodes.find((service) => service.id === selectedId) ?? null;
   const descendantIds = useMemo(() => collectDescendantIds(nodes, selectedId), [nodes, selectedId]);
+  const highlightedChildIds = useMemo(() => selectedId === 'project' ? descendantIds : new Set<string>(), [descendantIds, selectedId]);
   const zoomIn = () => setZoom((current) => Math.min(1.45, current * 1.5));
   const zoomOut = () => setZoom((current) => current / 1.5);
   const resetZoom = () => {
@@ -1014,7 +1029,10 @@ export default function InternalServiceMapPage() {
             <button type="button" className={\`mode-button \${mode === '3d' ? 'is-active' : ''}\`} onClick={() => setMode('3d')}>3D</button>
           </div>
           <button type="button" className="center-button" onClick={centerMap} aria-label="Center graph" title="Center graph"><span className="center-icon" aria-hidden="true" /></button>
-          <button type="button" className="add-service-button" onClick={() => setIsAddingService(true)}>+ Add service</button>
+          <button type="button" className="add-service-button" onClick={() => {
+            setNewService((current) => ({ ...current, parentId: selectedId && selectedId !== 'project' ? selectedId : 'product' }));
+            setIsAddingService(true);
+          }}>+ Add service</button>
         </div>
       </header>
 
@@ -1035,12 +1053,13 @@ export default function InternalServiceMapPage() {
               <Connections nodes={nodes} selectedId={selectedId} />
               <button type="button" className={\`hub \${selectedId === 'project' ? 'is-selected' : ''}\`} onClick={() => setSelectedId('project')} aria-label={\`Trace \${graph.project?.name ?? 'Project'} child services\`}><div className="hub-inner"><ProjectMark /></div></button>
               {nodes.map((service) => {
-                const isRelated = descendantIds.has(service.id) || selected?.parentId === service.id;
+                const isHighlightedChild = highlightedChildIds.has(service.id);
+                const isRelated = descendantIds.has(service.id) || selected?.parentId === service.id || isHighlightedChild;
                 return (
                 <button
                   type="button"
                   key={service.id}
-                  className={\`service-node \${selectedId === service.id ? 'is-selected' : ''} \${isRelated ? 'is-related' : ''}\`}
+                  className={\`service-node \${selectedId === service.id ? 'is-selected' : ''} \${isRelated ? 'is-related' : ''} \${isHighlightedChild ? 'is-highlighted-child' : ''}\`}
                   style={{ left: \`\${service.x}%\`, top: \`\${service.y}%\` }}
                   onPointerDown={(event) => startNodeDrag(event, service)}
                   onPointerMove={moveNodeDrag}
