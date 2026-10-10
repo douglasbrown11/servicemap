@@ -34,6 +34,10 @@ If no website can be found, create a desktop app fallback at `servicemap-desktop
     Do not deploy unless the user explicitly says yes.
     If they approve, use the project's existing deployment path, preferring `npm run deploy` when present, then provider-specific project configuration such as Vercel or Netlify.
 11. Report the page or desktop app path, service count, validation run, any services marked low or medium confidence, whether requested email access was enforced, and whether deployment was skipped or completed.
+12. If a desktop app was created and the chat client supports Codex inline follow-ups, end the final response with this button, replacing `<absolute-desktop-app-path>` with the generated app's actual absolute path:
+    `- :codex-followup[Launch Service Map]{prompt="Open a terminal in <absolute-desktop-app-path>, run npm run tauri dev, keep the process running, and tell me when the desktop app opens."}`
+    The button sends a follow-up request to Codex; do not claim that it executes the command directly.
+    If inline follow-ups are unavailable, report the absolute app path and the equivalent `npm run tauri dev` command instead.
 
 ## Safety Rules
 
