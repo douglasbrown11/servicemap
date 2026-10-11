@@ -290,7 +290,7 @@ export function interactiveTsxPage(graph, { desktop = false } = {}) {
   return `'use client';
 
 ${desktop ? "import ForceGraph3D from 'react-force-graph-3d';" : "import dynamic from 'next/dynamic';"}
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent } from 'react';
+import { useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState, type CSSProperties, type PointerEvent } from 'react';
 import type { ForceGraphMethods, NodeObject } from 'react-force-graph-3d';
 import * as THREE from 'three';
 import SpriteText from 'three-spritetext';
@@ -689,11 +689,13 @@ function ServiceGraph3D({
   nodes,
   selectedId,
   resetKey,
+  controlsRef,
   onSelect,
 }: {
   nodes: ServiceNode[];
   selectedId: string | null;
   resetKey: number;
+  controlsRef: { current: { zoom: (factor: number) => void } | null };
   onSelect: (id: string | null) => void;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -807,6 +809,8 @@ function ServiceGraph3D({
     graphInstance.cameraPosition(nextPosition, target, 240);
   }, []);
 
+  useImperativeHandle(controlsRef, () => ({ zoom }), [zoom]);
+
   return (
     <div className="graph-3d" ref={containerRef}>
       <ForceGraph3D
@@ -861,10 +865,6 @@ function ServiceGraph3D({
           graphRef.current?.zoomToFit(700, 130);
         }}
       />
-      <div className="graph-3d__zoom" aria-label="3D zoom controls">
-        <button type="button" onClick={() => zoom(1 / 1.5)} title="Zoom in" aria-label="Zoom in">+</button>
-        <button type="button" onClick={() => zoom(1.5)} title="Zoom out" aria-label="Zoom out">−</button>
-      </div>
       <div className="graph-3d__help" aria-hidden="true">Drag to rotate <span /> Scroll to zoom <span /> Click a service</div>
       {selectedId && <div className="graph-3d__focus" aria-hidden="true">{activeTreeLinkIds.size} connections highlighted</div>}
     </div>
@@ -901,6 +901,7 @@ export default function InternalServiceMapPage() {
   const [panStart, setPanStart] = useState<{ pointerId: number; x: number; y: number; panX: number; panY: number } | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [reset3DKey, setReset3DKey] = useState(0);
+  const controls3DRef = useRef<{ zoom: (factor: number) => void } | null>(null);
   const startNodeDrag = (event: PointerEvent<HTMLButtonElement>, node: ServiceNode) => {
     if (event.button !== 0) return;
     event.stopPropagation();
@@ -946,8 +947,14 @@ export default function InternalServiceMapPage() {
   const selected = nodes.find((service) => service.id === selectedId) ?? null;
   const descendantIds = useMemo(() => collectDescendantIds(nodes, selectedId), [nodes, selectedId]);
   const highlightedChildIds = useMemo(() => selectedId === 'project' ? descendantIds : new Set<string>(), [descendantIds, selectedId]);
-  const zoomIn = () => setZoom((current) => Math.min(1.45, current * 1.5));
-  const zoomOut = () => setZoom((current) => current / 1.5);
+  const zoomIn = () => {
+    if (mode === '3d') controls3DRef.current?.zoom(1 / 1.5);
+    else setZoom((current) => Math.min(1.45, current * 1.5));
+  };
+  const zoomOut = () => {
+    if (mode === '3d') controls3DRef.current?.zoom(1.5);
+    else setZoom((current) => current / 1.5);
+  };
   const resetZoom = () => {
     setZoom(1);
     setPan({ x: 0, y: 0 });
@@ -1088,12 +1095,12 @@ export default function InternalServiceMapPage() {
             </div>
           </>
         ) : (
-          <ServiceGraph3D nodes={nodes} selectedId={selectedId} resetKey={reset3DKey} onSelect={setSelectedId} />
+          <ServiceGraph3D nodes={nodes} selectedId={selectedId} resetKey={reset3DKey} controlsRef={controls3DRef} onSelect={setSelectedId} />
         )}
         <div className="zoom-controls" aria-label="Map zoom controls">
           <button type="button" className="zoom-button" onClick={zoomIn} aria-label="Zoom in">+</button>
           <button type="button" className="zoom-button" onClick={zoomOut} aria-label="Zoom out">−</button>
-          <button type="button" className="zoom-button" onClick={resetZoom} aria-label="Reset zoom"><span className="fit-icon" aria-hidden="true" /></button>
+          <button type="button" className="zoom-button" onClick={centerMap} aria-label="Reset zoom"><span className="fit-icon" aria-hidden="true" /></button>
         </div>
         <footer className="scan-foot">
           <div>Generated {new Date(graph.generatedAt).toLocaleString()}</div>

@@ -1,6 +1,10 @@
 #!/usr/bin/env node
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const desktopIcons = fileURLToPath(new URL('../assets/desktop-icons/', import.meta.url));
+const iconFiles = ['32x32.png', '128x128.png', '128x128@2x.png', 'icon.png', 'icon.icns', 'icon.ico'];
 import { interactiveTsxPage, prepareProjectLogo } from './generate-page.mjs';
 
 const defaultInput = '.servicemap/internal-servicemap.json';
@@ -116,6 +120,7 @@ function tauriConfig(graph) {
     bundle: {
       active: true,
       targets: 'all',
+      icon: iconFiles.map((name) => `icons/${name}`),
     },
   }, null, 2)}\n`;
 }
@@ -170,6 +175,9 @@ async function main() {
 
   await mkdir(options.output, { recursive: true });
   await prepareProjectLogo(graph, options.output);
+  for (const name of iconFiles) {
+    await writeProjectFile(options.output, `src-tauri/icons/${name}`, await readFile(join(desktopIcons, name)));
+  }
   await writeProjectFile(options.output, 'package.json', packageJson(graph));
   await writeProjectFile(options.output, 'index.html', indexHtml());
   await writeProjectFile(options.output, 'vite.config.js', viteConfig());

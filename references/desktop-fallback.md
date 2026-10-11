@@ -27,3 +27,9 @@ npm run build
 
 Do not install global tooling automatically.
 If native packaging fails because Rust, platform SDKs, or Tauri prerequisites are missing, report that the app source was generated and the web build passed.
+
+## Desktop identity
+
+The generated desktop app uses the shared green Service Map network logo for its Dock and application icons.
+The project logo belongs inside the map and must not replace `src-tauri/icons` or the configured bundle icons.
+The packaged icon source is `assets/desktop-icons/service-map.svg`, derived from the SettleAI website Service Map header.
