@@ -1051,7 +1051,7 @@ export default function InternalServiceMapPage() {
           <>
             <div className="map-plane" style={{ '--zoom': zoom, '--pan-x': \`\${pan.x}px\`, '--pan-y': \`\${pan.y}px\` } as CSSProperties}>
               <Connections nodes={nodes} selectedId={selectedId} />
-              <button type="button" className={\`hub \${selectedId === 'project' ? 'is-selected' : ''}\`} onClick={() => setSelectedId('project')} aria-label={\`Trace \${graph.project?.name ?? 'Project'} child services\`}><div className="hub-inner"><ProjectMark /></div></button>
+              <button type="button" className={\`hub \${selectedId === 'project' ? 'is-selected' : ''}\`} onClick={() => setSelectedId((current) => current === 'project' ? null : 'project')} aria-label={selectedId === 'project' ? \`Stop tracing \${graph.project?.name ?? 'Project'} child services\` : \`Trace \${graph.project?.name ?? 'Project'} child services\`} aria-pressed={selectedId === 'project'}><div className="hub-inner"><ProjectMark /></div></button>
               {nodes.map((service) => {
                 const isHighlightedChild = highlightedChildIds.has(service.id);
                 const isRelated = descendantIds.has(service.id) || selected?.parentId === service.id || isHighlightedChild;
