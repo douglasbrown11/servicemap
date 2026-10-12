@@ -20,3 +20,10 @@ Prefer a clean operational interface:
 - evidence shown in short form
 
 If the UI looks obviously off after rendering, fix the layout before finishing.
+
+## Service details dismissal
+
+Clicking anywhere outside an open service details panel must close it and restore the normal main screen, including clicks on the header or other service cards.
+Keep clicks inside the panel interactive without dismissing it.
+Consume the outside click so it does not activate underlying controls or start dragging the map or a service.
+Apply and verify this behavior in both 2D and 3D, for website and desktop output.

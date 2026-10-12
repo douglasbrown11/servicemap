@@ -1,15 +1,30 @@
 ---
 name: servicemap
-description: Create an /internalservicemap page or desktop app for a software project by scanning its codebase for external services, resolving logos, and attaching the map to the existing website when one is present.
+description: Create or refresh a service map for a software project. Automatically use after adding, removing, or changing third-party services, SDKs, integrations, or service configuration when .servicemap/internal-servicemap.json exists.
 metadata:
   short-description: Generate an internal servicemap page
 ---
 
 # Servicemap
 
-Use this skill when a user invokes `servicemap` or asks to create an internal servicemap for a software project.
+Use this skill when a user invokes `servicemap`, asks to create or update a map, or changes a third-party integration in a repository that already contains `.servicemap/internal-servicemap.json`.
+Do not wait for the user to mention ServiceMap after an integration change.
 The outcome is a working `/internalservicemap` page attached to the existing website when possible.
 If no website can be found, create a desktop app fallback at `servicemap-desktop`.
+
+## Refresh an existing map
+
+When `.servicemap/internal-servicemap.json` exists, run `node <skill-root>/bin/servicemap.mjs refresh --root <project-root>` after completing integration changes.
+Use the installed skill root containing this file, not the project's generated desktop app directory.
+Then run the same command with `--check` to verify freshness.
+Use this path instead of the creation workflow below; do not regenerate customized output.
+The command preserves custom UI outside the generated data section, manual service metadata, and access settings.
+If it reports a conflict inside the generated data section, preserve the file and reconcile the data edits into `.servicemap/internal-servicemap.json` before retrying.
+Do not bypass conflicts by deleting refresh state or overwriting the map.
+Include `.servicemap/internal-servicemap.json`, `.servicemap/refresh-state.json`, and updated output in the integration change.
+Do not deploy or launch the map solely to refresh it.
+Report any undetected integration rather than claiming every provider is supported.
+Repository instructions encourage automatic skill selection; the CI freshness check is the enforcement backstop, not a guarantee that every AI host invokes skills.
 
 ## Workflow
 
@@ -17,15 +32,19 @@ If no website can be found, create a desktop app fallback at `servicemap-desktop
    If the update fails because the network is unavailable, continue with the installed local copy and report that the auto-update did not complete.
 2. Inspect the project layout and current web framework.
 3. If the user gives a list of emails that may access the generated web page, pass them to the scan command with `--allow-email <email>` for each address or `--allow-emails <comma-separated-list>`.
-4. Run `scripts/scan-project.mjs --root <project-root>` to create `.servicemap/internal-servicemap.json`.
+4. Run `node <skill-root>/bin/servicemap.mjs generate --root <project-root> --no-open --no-deploy`.
    Include the access flags from the previous step when relevant.
-5. Review the scan output for obvious false positives or missing high-confidence services.
-6. If the scan detects a web framework or routeable website, run `scripts/generate-page.mjs --root <project-root>` to create the framework-specific `/internalservicemap` route.
-7. If the scan reports `framework: static` or no website route can be safely attached, run `scripts/generate-desktop-app.mjs --root <project-root>` to create `servicemap-desktop`.
+   This scans the codebase, chooses page or desktop output, and installs repository instructions and the CI freshness check.
+5. Review `.servicemap/internal-servicemap.json` for obvious false positives or missing high-confidence services.
+6. If evidence-backed corrections or annotations are needed, edit the canonical JSON and run `refresh` to update the output safely.
+7. Keep `.servicemap/refresh-state.json` alongside the map data in version control.
 8. Adapt the generated surface to the project's existing design system only when the route is clear and the edits are low-risk.
 9. Run the project's relevant build, lint, and focused tests.
    Open the generated map in a browser and verify both 2D and 3D modes.
    Click a product or service and verify its details panel and animated illuminated dashed child-branch connections.
+   Verify that clicking anywhere outside an open service details panel (including the header and other service cards) closes it and returns to the normal main screen in both 2D and 3D.
+   Clicking inside the panel must keep it open; the dismissal click must not activate or drag anything behind it.
+   Preserve this behavior when adapting or refreshing existing maps.
    Drag a service and verify that only that node moves and its connections follow, including after zooming.
    After testing 3D, return the delivered preview to 2D and close any open details panel.
    Always initialize new maps in 2D; do not persist the last selected view mode.

@@ -111,3 +111,45 @@ node bin/servicemap.mjs install-skill --targets universal,claude,grok --dry-run
 node bin/servicemap.mjs skills install --agent claude --dry-run
 python3 /Users/dougie/.codex/skills/.system/skill-creator/scripts/quick_validate.py .
 ```
+
+## Keep an existing map current
+
+Run `npx servicemap refresh` after adding, removing, or changing an integration.
+Use `--root <project>` when running outside that project.
+Refresh scans the current code, merges service data, and updates the existing map without rebuilding its surrounding UI.
+A refresh with no changes leaves map files untouched.
+
+Service notes, custom labels, unknown metadata fields, manual services, and access settings are preserved.
+Set `manual: true` on a service that should remain even without matching source evidence.
+Removed detected services disappear unless customized; customized records remain with `detected: false`, empty evidence, and low confidence so annotations are not lost.
+Browser-local positions are unaffected because service IDs and layout storage keys stay stable.
+Edits made only in an open browser's unsaved state are not repository data and cannot be recovered by the CLI.
+
+For React output, refresh changes the embedded graph data only.
+For static, Astro, and server-protected output, it updates the generated HTML data section while preserving surrounding CSS, code, and access checks.
+If that generated section was edited directly since the last refresh, the command reports a conflict before writing any map files.
+Keep service annotations in `.servicemap/internal-servicemap.json` rather than editing the embedded generated data.
+Older maps without refresh state are adopted on their first refresh when their generated data section is recognizable.
+
+### Automatic AI maintenance
+
+Creating or refreshing a map installs a marked maintenance block in `AGENTS.md`, `CLAUDE.md`, and `.github/copilot-instructions.md` without replacing existing instructions.
+The block asks the AI to invoke the installed skill and refresh the map after integration changes.
+The skill itself also describes integration changes as a trigger.
+An AI host must support and follow those instructions; this is not a background filesystem watcher or a universal completion hook.
+
+### CI freshness check
+
+Run `npx servicemap refresh --check` to check without writing any files.
+It exits successfully for a current map and exits with status 1 for stale data, missing output/state, or a conflicting generated data section.
+Checks ignore scan timestamps, absolute checkout paths, and unrelated file-count changes.
+Commit the map JSON, generated output, and `.servicemap/refresh-state.json` together.
+The state records previous detection results and generated data sections so refresh can preserve customizations and detect conflicts.
+
+Generation and refresh create `.github/workflows/servicemap-freshness.yml` if that file does not exist.
+The installed instructions and workflow pin the generating ServiceMap package version for reproducibility.
+That package version must be available on npm before remote agents or CI can run these commands.
+The workflow checks pushes and pull requests with read-only repository permissions and does not install or execute the target project's dependencies.
+An existing workflow at that path is preserved; add the check command to it yourself if necessary.
+For other CI providers, run the same check command in your existing pipeline.
+Detection is limited to supported scanner rules; the check does not prove that every possible service was discovered.

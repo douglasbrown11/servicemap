@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { refresh, registerRefresh } from '../scripts/refresh.mjs';
 import { spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { cp, mkdir, readFile, rm, symlink } from 'node:fs/promises';
@@ -220,6 +221,7 @@ function parseArgs() {
     if (arg === '--user') options.user = true;
     if (arg === '--survey') options.survey = true;
     if (arg === '--yes' || arg === '-y') options.yes = true;
+    if (arg === '--check') options.check = true;
     if (arg === '--dry-run') options.dryRun = true;
     if (arg === '--no-open') options.open = false;
     if (arg === '--deploy') options.deploy = true;
@@ -242,6 +244,7 @@ Usage:
   servicemap install-skill [--survey] [--agent codex|claude|grok|all] [--targets <ids>] [--install-method copy|symlink]
   servicemap skills install [--survey] [--agent codex|claude|grok|all]
   servicemap update
+  servicemap refresh [--root <project>] [--check]
 
 Examples:
   npx servicemap
@@ -754,8 +757,13 @@ async function main() {
     return;
   }
 
+  if (options.command === 'refresh') {
+    await refresh(options.root, { check: options.check || options.dryRun });
+    return;
+  }
+
   if (options.command !== 'generate') {
-    throw new Error(`Unknown command "${options.command}". Use generate, install-skill, update, or skills install.`);
+    throw new Error(`Unknown command "${options.command}". Use generate, refresh, install-skill, update, or skills install.`);
   }
 
   if (!['auto', 'page', 'desktop'].includes(options.mode)) {
@@ -780,9 +788,13 @@ async function main() {
 
   if (selectedMode === 'desktop') {
     await run(process.execPath, [desktopScript, '--root', options.root]);
+    await registerRefresh(options.root);
+    await refresh(options.root);
     if (options.open) await openDesktopPreview(options.root);
   } else {
     await run(process.execPath, [pageScript, '--root', options.root]);
+    await registerRefresh(options.root);
+    await refresh(options.root);
     if (options.open) await openGeneratedPage(options.root, scan.project?.framework);
     await maybeDeploy(options.root, options);
   }

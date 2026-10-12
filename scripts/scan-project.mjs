@@ -2,7 +2,7 @@
 import { existsSync } from 'node:fs';
 import { readFile, readdir, writeFile } from 'node:fs/promises';
 import { basename, dirname, extname, join, relative, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 const skillRoot = resolve(scriptDir, '..');
@@ -97,8 +97,8 @@ async function readJson(path) {
 }
 
 async function walk(root, files = []) {
-  for (const entry of await readdir(root, { withFileTypes: true })) {
-    if (ignoredDirs.has(entry.name)) continue;
+  for (const entry of (await readdir(root, { withFileTypes: true })).sort((a, b) => a.name.localeCompare(b.name))) {
+    if (ignoredDirs.has(entry.name) || /^internalservicemap(?:\.|$)/.test(entry.name)) continue;
     const path = join(root, entry.name);
     if (entry.isDirectory()) {
       await walk(path, files);
@@ -323,8 +323,8 @@ function scoreAppIconImage(image) {
   return score;
 }
 
-async function main() {
-  const options = parseArgs();
+export async function scanProject(root, allowedEmails = []) {
+  const options = { root: resolve(root), allowedEmails };
   const packageJsonPath = join(options.root, 'package.json');
   const packageJson = await readJson(packageJsonPath);
   const database = await readJson(logoDatabasePath);
@@ -379,14 +379,20 @@ async function main() {
     },
   };
 
+  return graph;
+}
+
+async function main() {
+  const options = parseArgs();
+  const graph = await scanProject(options.root, options.allowedEmails);
   await readdir(dirname(options.output)).catch(async () => {
     await import('node:fs/promises').then((fs) => fs.mkdir(dirname(options.output), { recursive: true }));
   });
   await writeFile(options.output, `${JSON.stringify(graph, null, 2)}\n`);
-  console.log(`Wrote ${services.length} services to ${options.output}`);
+  console.log(`Wrote ${graph.services.length} services to ${options.output}`);
 }
 
-main().catch((error) => {
+if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) main().catch((error) => {
   console.error(error);
   process.exit(1);
 });

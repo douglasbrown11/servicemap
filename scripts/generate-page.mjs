@@ -31,7 +31,7 @@ async function readJsonOrNull(path) {
   }
 }
 
-function routeFor(root, framework) {
+export function routeFor(root, framework) {
   if (framework === 'next-app-router') {
     const base = existsSync(join(root, 'src/app')) ? 'src/app' : 'app';
     return { path: join(root, base, 'internalservicemap/page.tsx'), kind: 'next-app-router' };
@@ -204,7 +204,7 @@ function projectMarkHtml(graph) {
   return logoUrl ? `<img src="${escapeHtml(logoUrl)}" alt="${escapeHtml(graph.project?.name ?? 'Project')} logo">` : '⌘';
 }
 
-function htmlBody(graph) {
+export function htmlBody(graph) {
   const services = graph.services ?? [];
   const access = graph.access ?? {};
   const hasAccessRequest = access.requested && access.allowedEmails?.length;
@@ -543,6 +543,13 @@ function DetailsPanel({
   return (
     <>
       <div className="drawer-scrim" />
+      <button
+        type="button"
+        aria-label="Dismiss service details"
+        style={{ position: 'fixed', inset: 0, zIndex: 29, border: 0, padding: 0, background: 'transparent' }}
+        onPointerDown={(event) => event.stopPropagation()}
+        onClick={onClose}
+      />
       <aside className="details-panel" aria-label={\`\${service.name} details\`}>
         <div className="details-head">
           <ServiceLogo service={service} />
