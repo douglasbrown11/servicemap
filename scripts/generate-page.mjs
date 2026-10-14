@@ -159,7 +159,7 @@ function pageCss() {
     .delete-button { color: #ff6b57; background: transparent; font-weight: 800; }
     .save-button { min-height: 48px; border-radius: 10px; background: #287a5a; color: #effbf5; padding: 0 18px; font-weight: 800; box-shadow: 0 10px 30px rgba(54,180,126,0.18); }
     .helper-text { margin: 10px 0 0; color: #687c72; font-size: 12px; line-height: 1.45; }
-    .modal-card { position: absolute; left: 50%; top: 50%; z-index: 31; width: min(520px, calc(100vw - 44px)); max-height: calc(100vh - 32px); overflow-y: auto; transform: translate(-50%, -50%); border: 1px solid #294034; border-radius: 20px; background: linear-gradient(180deg, rgba(21,31,25,0.99), rgba(8,17,12,0.99)); box-shadow: 0 24px 80px rgba(0,0,0,0.56); overflow: hidden; }
+    .modal-card { position: absolute; left: 50%; top: 50%; z-index: 31; width: min(520px, calc(100vw - 44px)); max-height: calc(100vh - 32px); overflow-y: auto; transform: translate(-50%, -50%); border: 1px solid #294034; border-radius: 20px; background: linear-gradient(180deg, rgba(21,31,25,0.99), rgba(8,17,12,0.99)); box-shadow: 0 24px 80px rgba(0,0,0,0.56); overflow-x: hidden; }
     .modal-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 22px 24px; border-bottom: 1px solid rgba(255,255,255,0.08); }
     .modal-head h2 { margin: 0; color: #f4fbf6; font-size: 20px; letter-spacing: 0; }
     .modal-body { padding: 22px 24px 24px; }
