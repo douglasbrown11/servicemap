@@ -76,9 +76,12 @@ function pageCss() {
     .mode-toggle { display: inline-flex; gap: 4px; padding: 4px; border-radius: 10px; background: #0b130f; }
     .mode-button { min-height: 36px; border: 0; border-radius: 8px; background: transparent; color: #789086; padding: 0 12px; cursor: pointer; font: inherit; font-weight: 800; }
     .mode-button.is-active { background: #276f53; color: #c9f9df; box-shadow: 0 0 18px rgba(101,240,173,0.16); }
-    .map { position: relative; height: calc(100vh - 88px); min-height: 760px; background: radial-gradient(circle at 50% 52%, rgba(41, 96, 69, 0.22), transparent 24%), radial-gradient(circle at 1px 1px, rgba(88, 160, 120, 0.2) 1px, transparent 1px), #020806; background-size: auto, 28px 28px, auto; }
+    .map-workspace { position: relative; display: grid; grid-template-columns: minmax(0, 1fr); }
+    .map-workspace.has-details { grid-template-columns: 360px minmax(0, 1fr); }
+    .map-workspace.has-details > .map { grid-column: 2; }
+    .map { position: relative; height: calc(100vh - 88px); min-height: 520px; overflow: hidden; background: radial-gradient(circle at 50% 52%, rgba(41, 96, 69, 0.22), transparent 24%), radial-gradient(circle at 1px 1px, rgba(88, 160, 120, 0.2) 1px, transparent 1px), #020806; background-size: auto, 28px 28px, auto; }
     .map.is-panning { cursor: grabbing; user-select: none; }
-    .map-plane { position: absolute; inset: 0; z-index: 20; transform: translate3d(var(--pan-x, 0px), var(--pan-y, 0px), 0) scale(var(--zoom, 1)); transform-origin: 50% 50%; transition: transform 160ms ease; }
+    .map-plane { position: absolute; left: 50%; top: 50%; z-index: 20; transform: translate(-50%, -50%) translate3d(var(--pan-x, 0px), var(--pan-y, 0px), 0) scale(var(--zoom, 1)); transform-origin: 50% 50%; transition: transform 160ms ease; }
     .map.is-panning .map-plane { transition: none; }
     .intro { position: absolute; left: 32px; top: 32px; z-index: 20; }
     .intro strong { display: block; color: #779286; font-size: 12px; letter-spacing: 0.22em; text-transform: uppercase; }
@@ -120,17 +123,17 @@ function pageCss() {
     .center-icon::before, .center-icon::after { content: ''; position: absolute; background: currentColor; }
     .center-icon::before { left: 50%; top: -5px; bottom: -5px; width: 2px; transform: translateX(-50%); }
     .center-icon::after { top: 50%; left: -5px; right: -5px; height: 2px; transform: translateY(-50%); }
-    .scan-foot { position: absolute; right: 32px; bottom: 32px; z-index: 20; color: #53665d; text-align: right; font-size: 12px; line-height: 1.6; }
+    .scan-foot { position: absolute; right: 32px; bottom: 76px; z-index: 20; color: #53665d; text-align: right; font-size: 12px; line-height: 1.6; }
     .access-warning { position: absolute; left: 32px; right: 32px; bottom: 88px; z-index: 25; max-width: 720px; border: 1px solid rgba(241,200,91,0.42); border-radius: 8px; background: rgba(31,27,12,0.92); color: #f7daa0; padding: 12px 14px; font-size: 14px; line-height: 1.45; }
     .drawer-scrim { position: absolute; inset: 0; z-index: 18; background: rgba(0,0,0,0.58); pointer-events: none; }
-    .details-panel { position: absolute; right: 22px; top: 64px; bottom: 26px; z-index: 30; width: min(492px, calc(100vw - 44px)); overflow: hidden; border: 1px solid #294034; border-radius: 24px; background: linear-gradient(180deg, rgba(21,31,25,0.98), rgba(8,17,12,0.98)); box-shadow: 0 24px 80px rgba(0,0,0,0.52); }
-    .details-head { display: flex; align-items: center; gap: 16px; padding: 26px 26px 22px; border-bottom: 1px solid rgba(255,255,255,0.08); }
+    .details-panel { position: relative; grid-column: 1; grid-row: 1; align-self: stretch; height: calc(100vh - 112px); min-height: 496px; margin: 12px 0 12px 12px; z-index: 30; display: flex; flex-direction: column; overflow: hidden; border: 1px solid #294034; border-radius: 24px; background: linear-gradient(180deg, rgba(21,31,25,0.98), rgba(8,17,12,0.98)); box-shadow: 0 24px 80px rgba(0,0,0,0.52); }
+    .details-head { flex-shrink: 0; display: flex; align-items: center; gap: 16px; padding: 26px 26px 22px; border-bottom: 1px solid rgba(255,255,255,0.08); }
     .details-title { min-width: 0; flex: 1; }
     .details-title span { display: block; color: #83978d; font-size: 13px; }
-    .details-title strong { display: block; margin-top: 6px; color: #f4fbf6; font-size: 28px; line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .details-title strong { display: block; margin-top: 6px; color: #f4fbf6; font-size: 20px; line-height: 1.25; overflow-wrap: anywhere; }
     .close-button, .link-button, .delete-button, .save-button { border: 0; cursor: pointer; font: inherit; }
-    .close-button { width: 36px; height: 36px; border-radius: 999px; background: transparent; color: #91a59b; font-size: 26px; }
-    .details-body { height: calc(100% - 100px); overflow: auto; padding: 26px; }
+    .close-button { flex-shrink: 0; width: 36px; height: 36px; border-radius: 999px; background: transparent; color: #91a59b; font-size: 26px; }
+    .details-body { flex: 1; min-height: 0; overflow: auto; padding: 26px; }
     .details-section { padding: 0 0 28px; margin: 0 0 28px; border-bottom: 1px solid rgba(255,255,255,0.08); }
     .details-section:last-child { border-bottom: 0; margin-bottom: 0; }
     .section-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; color: #91a59b; font-size: 13px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; }
@@ -143,7 +146,7 @@ function pageCss() {
     .link-card strong { color: #eef7f2; font-size: 14px; }
     .link-card span { grid-column: 1 / -1; color: #74867d; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .link-button { color: #8dc9ae; background: transparent; padding: 4px; }
-    .details-actions { position: absolute; left: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 26px; border-top: 1px solid rgba(255,255,255,0.08); background: rgba(8,17,12,0.98); }
+    .details-actions { flex-shrink: 0; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 26px; border-top: 1px solid rgba(255,255,255,0.08); background: rgba(8,17,12,0.98); }
     .delete-button { color: #ff6b57; background: transparent; font-weight: 800; }
     .save-button { min-height: 48px; border-radius: 10px; background: #287a5a; color: #effbf5; padding: 0 18px; font-weight: 800; box-shadow: 0 10px 30px rgba(54,180,126,0.18); }
     .helper-text { margin: 10px 0 0; color: #687c72; font-size: 12px; line-height: 1.45; }
@@ -170,12 +173,14 @@ function pageCss() {
     @media (prefers-reduced-motion: reduce) { .edge-line.is-active { animation: none; } }
     @keyframes servicemapLinkFlow { to { background-position: 22px 0; } }
     @media (max-width: 920px) {
-      .map { min-height: 1120px; }
+      .map { min-height: 520px; }
       .service-node { width: 220px; }
       .servicemap-topbar { height: auto; min-height: 88px; flex-wrap: wrap; padding: 14px; }
       .top-actions { display: flex; flex-wrap: wrap; gap: 8px; }
       .top-actions > span { display: none; }
-      .details-panel { position: fixed; inset: auto 12px 12px; top: 110px; width: auto; }
+      .map-workspace.has-details { grid-template-columns: minmax(0, 1fr); }
+      .map-workspace.has-details > .map { grid-column: 1; height: 60vh; min-height: 380px; }
+      .details-panel { grid-column: 1; grid-row: 2; height: 400px; min-height: 0; margin: 12px; }
     }
   `;
 }
@@ -542,14 +547,6 @@ function DetailsPanel({
   const links = serviceLinks(service);
   return (
     <>
-      <div className="drawer-scrim" />
-      <button
-        type="button"
-        aria-label="Dismiss service details"
-        style={{ position: 'fixed', inset: 0, zIndex: 29, border: 0, padding: 0, background: 'transparent' }}
-        onPointerDown={(event) => event.stopPropagation()}
-        onClick={onClose}
-      />
       <aside className="details-panel" aria-label={\`\${service.name} details\`}>
         <div className="details-head">
           <ServiceLogo service={service} />
@@ -879,6 +876,20 @@ function ServiceGraph3D({
 }
 
 export default function InternalServiceMapPage() {
+  const mapRef = useRef<HTMLElement>(null);
+  const [mapSize, setMapSize] = useState({ width: 1200, height: 760 });
+  useEffect(() => {
+    const element = mapRef.current;
+    if (!element) return;
+    const observer = new ResizeObserver(([entry]) => {
+      setMapSize({ width: entry.contentRect.width, height: entry.contentRect.height });
+    });
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
+  const planeWidth = Math.max(1200, mapSize.width);
+  const planeHeight = Math.max(760, mapSize.height);
+  const fitScale = Math.min(mapSize.width / planeWidth, mapSize.height / planeHeight);
   const [services, setServices] = useState<RawService[]>(() => graph.services ?? []);
   const [positions, setPositions] = useState<Record<string, { x: number; y: number }>>({});
   const positionsRef = useRef(positions);
@@ -1050,69 +1061,72 @@ export default function InternalServiceMapPage() {
         </div>
       </header>
 
-      <section
-        className={\`map \${panStart ? 'is-panning' : ''} \${selectedId ? 'has-selection' : ''}\`}
-        onPointerDown={startPan}
-        onPointerMove={movePan}
-        onPointerUp={stopPan}
-        onPointerCancel={stopPan}
-      >
-        <div className="intro">
-          <strong>{graph.project?.name ?? 'Project'} infrastructure</strong>
-          <span>{selected ? \`Tracing \${selected.name}\` : selectedId === 'project' ? \`Tracing \${graph.project?.name ?? 'Project'}\` : mode === '3d' ? 'Rotate and explore your service relationships' : 'Select a service to trace its dependencies'}</span>
-        </div>
-        {mode === '2d' ? (
-          <>
-            <div className="map-plane" style={{ '--zoom': zoom, '--pan-x': \`\${pan.x}px\`, '--pan-y': \`\${pan.y}px\` } as CSSProperties}>
-              <Connections nodes={nodes} selectedId={selectedId} />
-              <button type="button" className={\`hub \${selectedId === 'project' ? 'is-selected' : ''}\`} onClick={() => setSelectedId((current) => current === 'project' ? null : 'project')} aria-label={selectedId === 'project' ? \`Stop tracing \${graph.project?.name ?? 'Project'} child services\` : \`Trace \${graph.project?.name ?? 'Project'} child services\`} aria-pressed={selectedId === 'project'}><div className="hub-inner"><ProjectMark /></div></button>
-              {nodes.map((service) => {
-                const isHighlightedChild = highlightedChildIds.has(service.id);
-                const isRelated = descendantIds.has(service.id) || selected?.parentId === service.id || isHighlightedChild;
-                return (
-                <button
-                  type="button"
-                  key={service.id}
-                  className={\`service-node \${selectedId === service.id ? 'is-selected' : ''} \${isRelated ? 'is-related' : ''} \${isHighlightedChild ? 'is-highlighted-child' : ''}\`}
-                  style={{ left: \`\${service.x}%\`, top: \`\${service.y}%\` }}
-                  onPointerDown={(event) => startNodeDrag(event, service)}
-                  onPointerMove={moveNodeDrag}
-                  onPointerUp={stopNodeDrag}
-                  onPointerCancel={stopNodeDrag}
-                  onLostPointerCapture={stopNodeDrag}
-                  onClick={(event) => {
-                    if (event.detail !== 0 && suppressClick.current) { suppressClick.current = false; return; }
-                    setSelectedId(service.id);
-                  }}
-                >
-                  <ServiceLogo service={service} />
-                  <div className="service-copy">
-                    <strong>{service.name}</strong>
-                    <span>{categoryLabel(service.category)}</span>
-                  </div>
-                  <i className={\`status-dot status-\${service.confidence}\`} />
-                </button>
-                );
-              })}
-            </div>
-            <div className="legend">
-              <span><i style={{ background: '#4a7cff' }} />Cloud</span>
-              <span><i style={{ background: '#8be4b2' }} />Product</span>
-              <span><i style={{ background: '#65f0ad' }} />Active path</span>
-            </div>
-          </>
-        ) : (
-          <ServiceGraph3D nodes={nodes} selectedId={selectedId} resetKey={reset3DKey} controlsRef={controls3DRef} onSelect={setSelectedId} />
-        )}
-        <div className="zoom-controls" aria-label="Map zoom controls">
-          <button type="button" className="zoom-button" onClick={zoomIn} aria-label="Zoom in">+</button>
-          <button type="button" className="zoom-button" onClick={zoomOut} aria-label="Zoom out">−</button>
-          <button type="button" className="zoom-button" onClick={centerMap} aria-label="Reset zoom"><span className="fit-icon" aria-hidden="true" /></button>
-        </div>
-        <footer className="scan-foot">
-          <div>Generated {new Date(graph.generatedAt).toLocaleString()}</div>
-          <div>{nodes.length} services detected</div>
-        </footer>
+      <div className={selected ? 'map-workspace has-details' : 'map-workspace'}>
+        <section
+          ref={mapRef}
+          className={\`map \${panStart ? 'is-panning' : ''} \${selectedId ? 'has-selection' : ''}\`}
+          onPointerDown={startPan}
+          onPointerMove={movePan}
+          onPointerUp={stopPan}
+          onPointerCancel={stopPan}
+        >
+          <div className="intro">
+            <strong>{graph.project?.name ?? 'Project'} infrastructure</strong>
+            <span>{selected ? \`Tracing \${selected.name}\` : selectedId === 'project' ? \`Tracing \${graph.project?.name ?? 'Project'}\` : mode === '3d' ? 'Rotate and explore your service relationships' : 'Select a service to trace its dependencies'}</span>
+          </div>
+          {mode === '2d' ? (
+            <>
+              <div className="map-plane" style={{ width: planeWidth, height: planeHeight, '--zoom': zoom * fitScale, '--pan-x': \`\${pan.x}px\`, '--pan-y': \`\${pan.y}px\` } as CSSProperties}>
+                <Connections nodes={nodes} selectedId={selectedId} />
+                <button type="button" className={\`hub \${selectedId === 'project' ? 'is-selected' : ''}\`} onClick={() => setSelectedId((current) => current === 'project' ? null : 'project')} aria-label={selectedId === 'project' ? \`Stop tracing \${graph.project?.name ?? 'Project'} child services\` : \`Trace \${graph.project?.name ?? 'Project'} child services\`} aria-pressed={selectedId === 'project'}><div className="hub-inner"><ProjectMark /></div></button>
+                {nodes.map((service) => {
+                  const isHighlightedChild = highlightedChildIds.has(service.id);
+                  const isRelated = descendantIds.has(service.id) || selected?.parentId === service.id || isHighlightedChild;
+                  return (
+                  <button
+                    type="button"
+                    key={service.id}
+                    className={\`service-node \${selectedId === service.id ? 'is-selected' : ''} \${isRelated ? 'is-related' : ''} \${isHighlightedChild ? 'is-highlighted-child' : ''}\`}
+                    style={{ left: \`\${service.x}%\`, top: \`\${service.y}%\` }}
+                    onPointerDown={(event) => startNodeDrag(event, service)}
+                    onPointerMove={moveNodeDrag}
+                    onPointerUp={stopNodeDrag}
+                    onPointerCancel={stopNodeDrag}
+                    onLostPointerCapture={stopNodeDrag}
+                    onClick={(event) => {
+                      if (event.detail !== 0 && suppressClick.current) { suppressClick.current = false; return; }
+                      setSelectedId(service.id);
+                    }}
+                  >
+                    <ServiceLogo service={service} />
+                    <div className="service-copy">
+                      <strong>{service.name}</strong>
+                      <span>{categoryLabel(service.category)}</span>
+                    </div>
+                    <i className={\`status-dot status-\${service.confidence}\`} />
+                  </button>
+                  );
+                })}
+              </div>
+              <div className="legend">
+                <span><i style={{ background: '#4a7cff' }} />Cloud</span>
+                <span><i style={{ background: '#8be4b2' }} />Product</span>
+                <span><i style={{ background: '#65f0ad' }} />Active path</span>
+              </div>
+            </>
+          ) : (
+            <ServiceGraph3D nodes={nodes} selectedId={selectedId} resetKey={reset3DKey} controlsRef={controls3DRef} onSelect={setSelectedId} />
+          )}
+          <div className="zoom-controls" aria-label="Map zoom controls">
+            <button type="button" className="zoom-button" onClick={zoomIn} aria-label="Zoom in">+</button>
+            <button type="button" className="zoom-button" onClick={zoomOut} aria-label="Zoom out">−</button>
+            <button type="button" className="zoom-button" onClick={centerMap} aria-label="Reset zoom"><span className="fit-icon" aria-hidden="true" /></button>
+          </div>
+          <footer className="scan-foot">
+            <div>Generated {new Date(graph.generatedAt).toLocaleString()}</div>
+            <div>{nodes.length} services detected</div>
+          </footer>
+        </section>
         {selected && drafts[selected.id] ? (
           <DetailsPanel
             service={selected}
@@ -1130,7 +1144,7 @@ export default function InternalServiceMapPage() {
             onSubmit={addService}
           />
         ) : null}
-      </section>
+      </div>
     </main>
   );
 }
