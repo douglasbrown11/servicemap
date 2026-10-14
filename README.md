@@ -153,3 +153,8 @@ The workflow checks pushes and pull requests with read-only repository permissio
 An existing workflow at that path is preserved; add the check command to it yourself if necessary.
 For other CI providers, run the same check command in your existing pipeline.
 Detection is limited to supported scanner rules; the check does not prove that every possible service was discovered.
+
+Desktop generation automatically installs missing local dependencies and starts `npm run tauri dev` in `servicemap-desktop`.
+Keep the terminal running while using the native app; stop it with Ctrl-C.
+Use `--no-open` to generate without launching, or `--dry-run` to inspect detection without generating or launching.
+Native launch requires the local Rust and platform prerequisites for Tauri.

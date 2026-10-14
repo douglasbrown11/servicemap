@@ -3,7 +3,6 @@ import { refresh, registerRefresh } from '../scripts/refresh.mjs';
 import { spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { cp, mkdir, readFile, rm, symlink } from 'node:fs/promises';
-import net from 'node:net';
 import { dirname, join, resolve } from 'node:path';
 import { homedir } from 'node:os';
 import readline from 'node:readline';
@@ -305,59 +304,14 @@ function openUrl(url) {
   child.unref();
 }
 
-function findOpenPort() {
-  return new Promise((resolvePromise, reject) => {
-    const server = net.createServer();
-    server.on('error', reject);
-    server.listen(0, '127.0.0.1', () => {
-      const address = server.address();
-      const port = typeof address === 'object' && address ? address.port : 5173;
-      server.close(() => resolvePromise(port));
-    });
-  });
-}
-
-function waitForPort(port, timeoutMs = 10000) {
-  const startedAt = Date.now();
-  return new Promise((resolvePromise, reject) => {
-    const tryConnect = () => {
-      const socket = net.connect({ host: '127.0.0.1', port });
-      socket.on('connect', () => {
-        socket.destroy();
-        resolvePromise();
-      });
-      socket.on('error', () => {
-        socket.destroy();
-        if (Date.now() - startedAt > timeoutMs) {
-          reject(new Error(`Timed out waiting for desktop preview on port ${port}`));
-          return;
-        }
-        setTimeout(tryConnect, 150);
-      });
-    };
-    tryConnect();
-  });
-}
-
-async function openDesktopPreview(root) {
+async function openDesktopApp(root) {
   const appRoot = resolve(root, 'servicemap-desktop');
   if (!existsSync(join(appRoot, 'node_modules'))) {
-    console.log('Installing desktop preview dependencies...');
+    console.log('Installing desktop app dependencies...');
     await run('npm', ['install'], { cwd: appRoot });
   }
-
-  const port = await findOpenPort();
-  const child = spawn('npm', ['run', 'dev', '--', '--host', '127.0.0.1', '--port', String(port), '--strictPort'], {
-    cwd: appRoot,
-    stdio: 'ignore',
-    detached: true,
-  });
-  child.unref();
-
-  await waitForPort(port);
-  const url = `http://127.0.0.1:${port}/`;
-  openUrl(url);
-  console.log(`Opened desktop servicemap preview at ${url}`);
+  console.log(`Starting native Service Map in ${appRoot}`);
+  await run('npm', ['run', 'tauri', 'dev'], { cwd: appRoot });
 }
 
 async function openGeneratedPage(root, framework) {
@@ -790,7 +744,7 @@ async function main() {
     await run(process.execPath, [desktopScript, '--root', options.root]);
     await registerRefresh(options.root);
     await refresh(options.root);
-    if (options.open) await openDesktopPreview(options.root);
+    if (options.open) await openDesktopApp(options.root);
   } else {
     await run(process.execPath, [pageScript, '--root', options.root]);
     await registerRefresh(options.root);

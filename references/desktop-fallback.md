@@ -15,7 +15,10 @@ servicemap-desktop
 ```
 
 It is a Vite React app with Tauri configuration.
-It can run as a web preview with `npm run dev`.
+The CLI automatically installs missing local dependencies and runs `npm run tauri dev` from the generated directory after generation and refresh finish.
+Use `--no-open` to generate without launching.
+Keep the terminal running while using the app.
+It can also run as a web preview with `npm run dev`.
 It can be packaged as a native desktop app with `npm run tauri build` when the local machine has the Tauri/Rust toolchain available.
 
 Validate the generated app with:
