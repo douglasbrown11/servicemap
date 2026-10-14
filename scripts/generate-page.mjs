@@ -139,6 +139,15 @@ function pageCss() {
     .section-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; color: #91a59b; font-size: 13px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; }
     .field-label { display: block; margin: 16px 0 8px; color: #83978d; font-size: 13px; }
     .details-input, .details-textarea { width: 100%; border: 1px solid #2a3c33; border-radius: 10px; background: rgba(255,255,255,0.04); color: #e9f5ee; font: inherit; padding: 13px 14px; outline: none; }
+    .parent-picker { min-width: 0; margin: 16px 0 0; padding: 0; border: 0; }
+    .parent-picker .field-label { margin: 0 0 8px; }
+    .parent-options { max-height: 200px; overflow-y: auto; border: 1px solid #3c5547; border-radius: 10px; background: #101b15; }
+    .parent-option { display: flex; align-items: flex-start; gap: 12px; padding: 12px 14px; color: #f0f8f3; font-size: 15px; line-height: 1.5; cursor: pointer; }
+    .parent-option + .parent-option { border-top: 1px solid #2a3c33; }
+    .parent-option:hover, .parent-option:has(input:checked) { background: #244b38; }
+    .parent-option:focus-within { outline: 2px solid #65f0ad; outline-offset: -2px; }
+    .parent-option input { flex-shrink: 0; margin: 4px 0 0; accent-color: #65f0ad; }
+    .parent-option span { min-width: 0; overflow-wrap: anywhere; }
     .details-textarea { min-height: 96px; resize: vertical; line-height: 1.45; }
     .details-input:focus, .details-textarea:focus { border-color: #65f0ad; box-shadow: 0 0 0 2px rgba(101,240,173,0.16); }
     .links-list { display: grid; gap: 12px; }
@@ -150,7 +159,7 @@ function pageCss() {
     .delete-button { color: #ff6b57; background: transparent; font-weight: 800; }
     .save-button { min-height: 48px; border-radius: 10px; background: #287a5a; color: #effbf5; padding: 0 18px; font-weight: 800; box-shadow: 0 10px 30px rgba(54,180,126,0.18); }
     .helper-text { margin: 10px 0 0; color: #687c72; font-size: 12px; line-height: 1.45; }
-    .modal-card { position: absolute; left: 50%; top: 50%; z-index: 31; width: min(440px, calc(100vw - 44px)); transform: translate(-50%, -50%); border: 1px solid #294034; border-radius: 20px; background: linear-gradient(180deg, rgba(21,31,25,0.99), rgba(8,17,12,0.99)); box-shadow: 0 24px 80px rgba(0,0,0,0.56); overflow: hidden; }
+    .modal-card { position: absolute; left: 50%; top: 50%; z-index: 31; width: min(520px, calc(100vw - 44px)); max-height: calc(100vh - 32px); overflow-y: auto; transform: translate(-50%, -50%); border: 1px solid #294034; border-radius: 20px; background: linear-gradient(180deg, rgba(21,31,25,0.99), rgba(8,17,12,0.99)); box-shadow: 0 24px 80px rgba(0,0,0,0.56); overflow-x: hidden; }
     .modal-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 22px 24px; border-bottom: 1px solid rgba(255,255,255,0.08); }
     .modal-head h2 { margin: 0; color: #f4fbf6; font-size: 20px; letter-spacing: 0; }
     .modal-body { padding: 22px 24px 24px; }
@@ -666,18 +675,23 @@ function AddServiceModal({
             placeholder="billing, hosting, analytics"
           />
 
-          <label className="field-label" htmlFor="new-service-parent">Parent service</label>
-          <select
-            id="new-service-parent"
-            className="details-input"
-            value={draft.parentId}
-            onChange={(event) => onChange({ ...draft, parentId: event.target.value })}
-          >
-            <option value="product">{graph.project?.name ?? 'Product'}</option>
-            {nodes.map((node) => (
-              <option key={node.id} value={node.id}>{node.name}</option>
-            ))}
-          </select>
+          <fieldset className="parent-picker">
+            <legend className="field-label">Parent service</legend>
+            <div className="parent-options">
+              {[{ id: 'product', name: graph.project?.name ?? 'Product' }, ...nodes].map((node) => (
+                <label key={node.id} className="parent-option">
+                  <input
+                    type="radio"
+                    name="new-service-parent"
+                    value={node.id}
+                    checked={draft.parentId === node.id}
+                    onChange={() => onChange({ ...draft, parentId: node.id })}
+                  />
+                  <span>{node.name}</span>
+                </label>
+              ))}
+            </div>
+          </fieldset>
 
           <div className="modal-actions">
             <button type="button" className="secondary-button" onClick={onClose}>Cancel</button>
