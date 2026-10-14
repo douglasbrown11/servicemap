@@ -91,6 +91,17 @@ When a website page is generated, Servicemap prompts before deployment when it d
 It prefers an existing `npm run deploy` script, then provider config such as Vercel or Netlify.
 Use `--no-deploy` to skip the prompt.
 
+## Desktop launch
+
+After desktop generation and refresh finish, the CLI installs dependencies if `servicemap-desktop/node_modules` is missing and starts `npm run tauri dev` from `servicemap-desktop` in the target project.
+The native process stays attached to the terminal so startup failures are visible; keep the terminal running while using the app and stop it with Ctrl-C.
+Use `--no-open` to generate without installing dependencies or launching, or `--dry-run` to scan without generating the app or launching.
+Native launch requires the local Rust and platform prerequisites for Tauri.
+See [Desktop Fallback](references/desktop-fallback.md) for web preview and packaging commands.
+
+When manually adding a service, choose its parent from the scrollable radio list.
+Full parent names wrap, and the list supports keyboard navigation.
+
 ## Contents
 
 - `SKILL.md`: installable Servicemap skill entrypoint
@@ -153,8 +164,3 @@ The workflow checks pushes and pull requests with read-only repository permissio
 An existing workflow at that path is preserved; add the check command to it yourself if necessary.
 For other CI providers, run the same check command in your existing pipeline.
 Detection is limited to supported scanner rules; the check does not prove that every possible service was discovered.
-
-Desktop generation automatically installs missing local dependencies and starts `npm run tauri dev` in `servicemap-desktop`.
-Keep the terminal running while using the native app; stop it with Ctrl-C.
-Use `--no-open` to generate without launching, or `--dry-run` to inspect detection without generating or launching.
-Native launch requires the local Rust and platform prerequisites for Tauri.
