@@ -1,0 +1,602 @@
+[
+  {
+    "key": "linear",
+    "name": "Linear",
+    "category": "developer-tools",
+    "websiteUrl": "https://linear.app",
+    "domains": [
+      "linear.app"
+    ],
+    "packages": [
+      "@linear/sdk"
+    ],
+    "envPrefixes": [
+      "LINEAR_"
+    ]
+  },
+  {
+    "key": "openai",
+    "name": "OpenAI",
+    "category": "ai",
+    "websiteUrl": "https://openai.com",
+    "domains": [
+      "openai.com"
+    ],
+    "packages": [
+      "openai"
+    ],
+    "envPrefixes": [
+      "OPENAI_"
+    ]
+  },
+  {
+    "key": "slack",
+    "name": "Slack",
+    "category": "collaboration",
+    "websiteUrl": "https://slack.com",
+    "domains": [
+      "slack.com"
+    ],
+    "packages": [
+      "@slack/web-api",
+      "@slack/bolt"
+    ],
+    "envPrefixes": [
+      "SLACK_"
+    ]
+  },
+  {
+    "key": "twilio",
+    "name": "Twilio",
+    "category": "communications",
+    "websiteUrl": "https://twilio.com",
+    "domains": [
+      "twilio.com"
+    ],
+    "packages": [
+      "twilio"
+    ],
+    "envPrefixes": [
+      "TWILIO_"
+    ]
+  },
+  {
+    "key": "revenuecat",
+    "name": "RevenueCat",
+    "category": "billing",
+    "websiteUrl": "https://revenuecat.com",
+    "domains": [
+      "revenuecat.com"
+    ],
+    "packages": [
+      "@revenuecat/purchases-js",
+      "react-native-purchases"
+    ],
+    "envPrefixes": [
+      "REVENUECAT_"
+    ]
+  },
+  {
+    "key": "amazonwebservices",
+    "name": "Amazon Web Services",
+    "category": "cloud",
+    "websiteUrl": "https://aws.amazon.com",
+    "domains": [
+      "aws.amazon.com",
+      "amazonaws.com"
+    ],
+    "packages": [
+      "aws-sdk",
+      "@aws-sdk"
+    ],
+    "envPrefixes": [
+      "AWS_"
+    ],
+    "aliases": [
+      "AWS",
+      "Amazon AWS"
+    ]
+  },
+  {
+    "key": "microsoftazure",
+    "name": "Microsoft Azure",
+    "category": "cloud",
+    "websiteUrl": "https://azure.microsoft.com",
+    "domains": [
+      "azure.microsoft.com",
+      "azure.com"
+    ],
+    "packages": [
+      "@azure"
+    ],
+    "envPrefixes": [
+      "AZURE_"
+    ],
+    "aliases": [
+      "Azure",
+      "Microsoft Azure"
+    ]
+  },
+  {
+    "key": "inngest",
+    "name": "Inngest",
+    "category": "developer-tools",
+    "websiteUrl": "https://inngest.com",
+    "domains": [
+      "inngest.com"
+    ],
+    "packages": [
+      "inngest"
+    ],
+    "envPrefixes": [
+      "INNGEST_"
+    ]
+  },
+  {
+    "key": "elevenlabs",
+    "name": "ElevenLabs",
+    "category": "ai",
+    "websiteUrl": "https://elevenlabs.io",
+    "domains": [
+      "elevenlabs.io"
+    ],
+    "packages": [
+      "@elevenlabs/elevenlabs-js",
+      "elevenlabs"
+    ],
+    "envPrefixes": [
+      "ELEVENLABS_"
+    ]
+  },
+  {
+    "key": "groq",
+    "name": "Groq",
+    "category": "ai",
+    "websiteUrl": "https://groq.com",
+    "domains": [
+      "groq.com"
+    ],
+    "packages": [
+      "groq-sdk"
+    ],
+    "envPrefixes": [
+      "GROQ_"
+    ]
+  },
+  {
+    "key": "deepgram",
+    "name": "Deepgram",
+    "category": "ai",
+    "websiteUrl": "https://deepgram.com",
+    "domains": [
+      "deepgram.com"
+    ],
+    "packages": [
+      "@deepgram/sdk"
+    ],
+    "envPrefixes": [
+      "DEEPGRAM_"
+    ]
+  },
+  {
+    "key": "assemblyai",
+    "name": "AssemblyAI",
+    "category": "ai",
+    "websiteUrl": "https://assemblyai.com",
+    "domains": [
+      "assemblyai.com"
+    ],
+    "packages": [
+      "assemblyai"
+    ],
+    "envPrefixes": [
+      "ASSEMBLYAI_"
+    ]
+  },
+  {
+    "key": "upstash",
+    "name": "Upstash",
+    "category": "database",
+    "websiteUrl": "https://upstash.com",
+    "domains": [
+      "upstash.com"
+    ],
+    "packages": [
+      "@upstash/redis",
+      "@upstash/qstash"
+    ],
+    "envPrefixes": [
+      "UPSTASH_"
+    ]
+  },
+  {
+    "key": "replicate",
+    "name": "Replicate",
+    "category": "ai",
+    "websiteUrl": "https://replicate.com",
+    "domains": [
+      "replicate.com"
+    ],
+    "packages": [
+      "replicate"
+    ],
+    "envPrefixes": [
+      "REPLICATE_"
+    ]
+  },
+  {
+    "key": "cohere",
+    "name": "Cohere",
+    "category": "ai",
+    "websiteUrl": "https://cohere.com",
+    "domains": [
+      "cohere.com"
+    ],
+    "packages": [
+      "cohere-ai"
+    ],
+    "envPrefixes": [
+      "COHERE_"
+    ]
+  },
+  {
+    "key": "n8n",
+    "name": "n8n",
+    "category": "automation",
+    "websiteUrl": "https://n8n.io",
+    "domains": [
+      "n8n.io"
+    ],
+    "packages": [
+      "n8n"
+    ],
+    "envPrefixes": [
+      "N8N_"
+    ]
+  },
+  {
+    "key": "neon",
+    "name": "Neon",
+    "category": "database",
+    "websiteUrl": "https://neon.tech",
+    "domains": [
+      "neon.tech"
+    ],
+    "packages": [
+      "@neondatabase/serverless"
+    ],
+    "envPrefixes": [
+      "NEON_"
+    ]
+  },
+  {
+    "key": "qdrant",
+    "name": "Qdrant",
+    "category": "database",
+    "websiteUrl": "https://qdrant.tech",
+    "domains": [
+      "qdrant.tech"
+    ],
+    "packages": [
+      "@qdrant/js-client-rest"
+    ],
+    "envPrefixes": [
+      "QDRANT_"
+    ]
+  },
+  {
+    "key": "pinecone",
+    "name": "Pinecone",
+    "category": "database",
+    "websiteUrl": "https://pinecone.io",
+    "domains": [
+      "pinecone.io"
+    ],
+    "packages": [
+      "@pinecone-database/pinecone"
+    ],
+    "envPrefixes": [
+      "PINECONE_"
+    ]
+  },
+  {
+    "key": "weaviate",
+    "name": "Weaviate",
+    "category": "database",
+    "websiteUrl": "https://weaviate.io",
+    "domains": [
+      "weaviate.io"
+    ],
+    "packages": [
+      "weaviate-client",
+      "weaviate-ts-client"
+    ],
+    "envPrefixes": [
+      "WEAVIATE_"
+    ]
+  },
+  {
+    "key": "stripe",
+    "name": "Stripe",
+    "category": "billing",
+    "websiteUrl": "https://stripe.com",
+    "domains": [
+      "stripe.com"
+    ],
+    "packages": [
+      "stripe"
+    ],
+    "envPrefixes": [
+      "STRIPE_"
+    ]
+  },
+  {
+    "key": "supabase",
+    "name": "Supabase",
+    "category": "database",
+    "websiteUrl": "https://supabase.com",
+    "domains": [
+      "supabase.com"
+    ],
+    "packages": [
+      "@supabase/supabase-js",
+      "supabase"
+    ],
+    "envPrefixes": [
+      "SUPABASE_"
+    ]
+  },
+  {
+    "key": "firebase",
+    "name": "Firebase",
+    "category": "cloud",
+    "websiteUrl": "https://firebase.google.com",
+    "domains": [
+      "firebase.google.com"
+    ],
+    "packages": [
+      "firebase",
+      "firebase-admin"
+    ],
+    "envPrefixes": [
+      "FIREBASE_",
+      "GOOGLE_APPLICATION_CREDENTIALS"
+    ]
+  },
+  {
+    "key": "sentry",
+    "name": "Sentry",
+    "category": "monitoring",
+    "websiteUrl": "https://sentry.io",
+    "domains": [
+      "sentry.io"
+    ],
+    "packages": [
+      "@sentry"
+    ],
+    "envPrefixes": [
+      "SENTRY_"
+    ]
+  },
+  {
+    "key": "posthog",
+    "name": "PostHog",
+    "category": "analytics",
+    "websiteUrl": "https://posthog.com",
+    "domains": [
+      "posthog.com"
+    ],
+    "packages": [
+      "posthog-js",
+      "posthog-node",
+      "posthog"
+    ],
+    "envPrefixes": [
+      "POSTHOG_"
+    ]
+  },
+  {
+    "key": "anthropic",
+    "name": "Anthropic",
+    "category": "ai",
+    "websiteUrl": "https://anthropic.com",
+    "domains": [
+      "anthropic.com"
+    ],
+    "packages": [
+      "@anthropic-ai/sdk",
+      "anthropic"
+    ],
+    "envPrefixes": [
+      "ANTHROPIC_"
+    ]
+  },
+  {
+    "key": "vercel",
+    "name": "Vercel",
+    "category": "hosting",
+    "websiteUrl": "https://vercel.com",
+    "domains": [
+      "vercel.com"
+    ],
+    "packages": [
+      "@vercel/analytics",
+      "@vercel/speed-insights"
+    ],
+    "envPrefixes": [
+      "VERCEL_"
+    ]
+  },
+  {
+    "key": "cloudflare",
+    "name": "Cloudflare",
+    "category": "cloud",
+    "websiteUrl": "https://cloudflare.com",
+    "domains": [
+      "cloudflare.com"
+    ],
+    "packages": [
+      "wrangler",
+      "@cloudflare/workers-types"
+    ],
+    "envPrefixes": [
+      "CLOUDFLARE_"
+    ]
+  },
+  {
+    "key": "resend",
+    "name": "Resend",
+    "category": "email",
+    "websiteUrl": "https://resend.com",
+    "domains": [
+      "resend.com"
+    ],
+    "packages": [
+      "resend"
+    ],
+    "envPrefixes": [
+      "RESEND_"
+    ]
+  },
+  {
+    "key": "mailgun",
+    "name": "Mailgun",
+    "category": "email",
+    "websiteUrl": "https://mailgun.com",
+    "domains": [
+      "mailgun.com"
+    ],
+    "packages": [
+      "mailgun.js"
+    ],
+    "envPrefixes": [
+      "MAILGUN_"
+    ]
+  },
+  {
+    "key": "sendgrid",
+    "name": "SendGrid",
+    "category": "email",
+    "websiteUrl": "https://sendgrid.com",
+    "domains": [
+      "sendgrid.com"
+    ],
+    "packages": [
+      "@sendgrid/mail",
+      "@sendgrid/client"
+    ],
+    "envPrefixes": [
+      "SENDGRID_"
+    ]
+  },
+  {
+    "key": "clerk",
+    "name": "Clerk",
+    "category": "auth",
+    "websiteUrl": "https://clerk.com",
+    "domains": [
+      "clerk.com"
+    ],
+    "packages": [
+      "@clerk/nextjs",
+      "@clerk/clerk-react"
+    ],
+    "envPrefixes": [
+      "CLERK_",
+      "NEXT_PUBLIC_CLERK_"
+    ]
+  },
+  {
+    "key": "auth0",
+    "name": "Auth0",
+    "category": "auth",
+    "websiteUrl": "https://auth0.com",
+    "domains": [
+      "auth0.com"
+    ],
+    "packages": [
+      "@auth0/auth0-react",
+      "@auth0/nextjs-auth0"
+    ],
+    "envPrefixes": [
+      "AUTH0_"
+    ]
+  },
+  {
+    "key": "github",
+    "name": "GitHub",
+    "category": "developer-tools",
+    "websiteUrl": "https://github.com",
+    "domains": [
+      "github.com"
+    ],
+    "packages": [
+      "@octokit/rest",
+      "@actions/core"
+    ],
+    "envPrefixes": [
+      "GITHUB_"
+    ]
+  },
+  {
+    "key": "discord",
+    "name": "Discord",
+    "category": "collaboration",
+    "websiteUrl": "https://discord.com",
+    "domains": [
+      "discord.com"
+    ],
+    "packages": [
+      "discord.js"
+    ],
+    "envPrefixes": [
+      "DISCORD_"
+    ]
+  },
+  {
+    "key": "hubspot",
+    "name": "HubSpot",
+    "category": "crm",
+    "websiteUrl": "https://hubspot.com",
+    "domains": [
+      "hubspot.com"
+    ],
+    "packages": [
+      "@hubspot/api-client"
+    ],
+    "envPrefixes": [
+      "HUBSPOT_"
+    ]
+  },
+  {
+    "key": "zendesk",
+    "name": "Zendesk",
+    "category": "support",
+    "websiteUrl": "https://zendesk.com",
+    "domains": [
+      "zendesk.com"
+    ],
+    "packages": [
+      "node-zendesk",
+      "zendesk"
+    ],
+    "envPrefixes": [
+      "ZENDESK_"
+    ]
+  },
+  {
+    "key": "intercom",
+    "name": "Intercom",
+    "category": "support",
+    "websiteUrl": "https://intercom.com",
+    "domains": [
+      "intercom.com"
+    ],
+    "packages": [
+      "@intercom/messenger-js-sdk"
+    ],
+    "envPrefixes": [
+      "INTERCOM_"
+    ]
+  }
+]

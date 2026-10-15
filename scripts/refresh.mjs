@@ -2,6 +2,7 @@ import { readFile, writeFile, mkdir, rename, unlink } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { dirname, extname, join, relative, resolve, sep } from 'node:path';
 import { isDeepStrictEqual } from 'node:util';
+import { prepareServiceLogos, reportMissingLogos } from './service-logos.mjs';
 import { scanProject } from './scan-project.mjs';
 import { routeFor, htmlBody } from './generate-page.mjs';
 
@@ -172,7 +173,10 @@ export async function refresh(root, { check = false } = {}) {
     : { version: 1, detected: current, surfaces: await discoverSurfaces(root, current) };
   if (!hasState) {
     for (const surface of state.surfaces) {
-      if (surface.value !== renderData(current, surface.kind)) {
+      const rendered = structuredClone(current);
+      const outputRoot = surface.path === 'servicemap-desktop/src/ServiceMap.tsx' ? join(root, 'servicemap-desktop') : root;
+      await prepareServiceLogos(rendered, outputRoot, { cacheRoot: root, check: true });
+      if (surface.value !== renderData(current, surface.kind) && surface.value !== renderData(rendered, surface.kind)) {
         throw new Error(`Legacy map data differs from canonical data in ${surface.path}. Reconcile customizations into ${dataFile} before adopting refresh; no files were changed.`);
       }
     }
@@ -185,6 +189,7 @@ export async function refresh(root, { check = false } = {}) {
   if (dataChanged || detectionChanged) next.generatedAt = fresh.generatedAt;
   const writes = [];
   const surfaces = [];
+  const validated = [];
   for (const surface of state.surfaces) {
     const output = safePath(root, surface.path);
     const source = await readFile(output, 'utf8');
@@ -192,13 +197,21 @@ export async function refresh(root, { check = false } = {}) {
     if (part.kind !== surface.kind || part.value !== surface.value) {
       throw new Error(`Map data was customized directly in ${surface.path}. Move those data edits into ${dataFile} before refreshing; no files were changed.`);
     }
-    const value = renderData(next, part.kind);
+    validated.push({ surface, output, source, part });
+  }
+  for (const { surface, output, source, part } of validated) {
+    const rendered = structuredClone(next);
+    const outputRoot = surface.path === 'servicemap-desktop/src/ServiceMap.tsx' ? join(root, 'servicemap-desktop') : root;
+    const logos = await prepareServiceLogos(rendered, outputRoot, { cacheRoot: root, check });
+    if (check && logos.missingAssets.length) throw new Error('ServiceMap is stale: logo assets are missing. Run npx servicemap refresh.');
+    if (!check) reportMissingLogos(logos);
+    const value = renderData(rendered, part.kind);
     const content = source.slice(0, part.start) + value + source.slice(part.start + part.value.length);
     if (content !== source) writes.push([output, content]);
     surfaces.push({ ...surface, value });
     if (surface.path === 'servicemap-desktop/src/ServiceMap.tsx') {
       const mirror = join(root, 'servicemap-desktop/src/servicemap-data.json');
-      const content = json(next);
+      const content = json(rendered);
       if (!existsSync(mirror) || await readFile(mirror, 'utf8') !== content) writes.push([mirror, content]);
     }
   }

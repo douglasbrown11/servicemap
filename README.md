@@ -4,6 +4,14 @@ Reusable `servicemap` skill package and CLI.
 
 The skill scans a software project for external services, resolves service logos from a bundled database, and creates either an `/internalservicemap` website route or a desktop app fallback.
 
+## Automatic logos
+
+ServiceMap includes 3,466 bundled brand icons and resolves missing logos from an identified company's official website.
+Generation and refresh save validated images locally, preserve custom logo overrides, and reuse cached downloads offline.
+No API key or AI model is required.
+Unknown company identities need an evidence-backed `websiteUrl`; failed lookups use initials and are reported.
+See [service logos](references/service-logos.md) for custom services, cache behavior, and catalog maintenance.
+
 ## Terminal Use
 
 The npm package name `servicemap` is available, so users can run the clean command and choose where to install it:
@@ -109,7 +117,7 @@ Full parent names wrap, and the list supports keyboard navigation.
 - `scripts/scan-project.mjs`: scans a project for service evidence
 - `scripts/generate-page.mjs`: creates website routes
 - `scripts/generate-desktop-app.mjs`: creates the desktop fallback
-- `assets/service-logo-database.json`: 1,000 service logo records
+- `assets/service-logo-database.json`: 3,478 service records with 3,466 bundled brand icons
 
 ## Validation
 

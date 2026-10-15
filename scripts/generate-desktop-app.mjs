@@ -7,6 +7,8 @@ const desktopIcons = fileURLToPath(new URL('../assets/desktop-icons/', import.me
 const iconFiles = ['32x32.png', '128x128.png', '128x128@2x.png', 'icon.png', 'icon.icns', 'icon.ico'];
 import { interactiveTsxPage, prepareProjectLogo } from './generate-page.mjs';
 
+import { prepareServiceLogos, reportMissingLogos } from './service-logos.mjs';
+
 const defaultInput = '.servicemap/internal-servicemap.json';
 const defaultOutput = 'servicemap-desktop';
 
@@ -175,6 +177,7 @@ async function main() {
 
   await mkdir(options.output, { recursive: true });
   await prepareProjectLogo(graph, options.output);
+  reportMissingLogos(await prepareServiceLogos(graph, options.output, { cacheRoot: options.root }));
   for (const name of iconFiles) {
     await writeProjectFile(options.output, `src-tauri/icons/${name}`, await readFile(join(desktopIcons, name)));
   }

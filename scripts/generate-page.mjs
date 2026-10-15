@@ -5,6 +5,8 @@ import { spawn } from 'node:child_process';
 import { pathToFileURL } from 'node:url';
 import { dirname, extname, isAbsolute, join, resolve } from 'node:path';
 
+import { prepareServiceLogos, reportMissingLogos } from './service-logos.mjs';
+
 const defaultInput = '.servicemap/internal-servicemap.json';
 
 function parseArgs() {
@@ -105,7 +107,7 @@ function pageCss() {
     .map.has-selection .service-node.is-selected, .map.has-selection .service-node.is-highlighted-child { opacity: 1; }
     .service-node.is-selected { z-index: 27; }
     .logo { width: 48px; height: 48px; flex: 0 0 auto; border-radius: 8px; display: grid; place-items: center; overflow: hidden; color: #fff; font-weight: 700; }
-    .logo img { width: 28px; height: 28px; object-fit: contain; filter: invert(1); }
+    .logo img { width: 28px; height: 28px; object-fit: contain; }
     .service-copy { min-width: 0; }
     .service-copy strong { display: block; color: #f2faf5; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .service-copy span { display: block; margin-top: 5px; color: #7f9188; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -311,7 +313,7 @@ import SpriteText from 'three-spritetext';
 
 const css = ${JSON.stringify(pageCss())};
 type Evidence = { type?: string; value?: string; confidence?: string };
-type RawService = { id: string; name: string; key?: string; category?: string; confidence?: string; evidence?: Evidence[]; iconUrl?: string | null; parentId?: string | null };
+type RawService = { id: string; name: string; key?: string; category?: string; confidence?: string; evidence?: Evidence[]; iconUrl?: string | null; websiteUrl?: string; docsUrl?: string; parentId?: string | null };
 type ServiceNode = RawService & { color: string; x: number; y: number };
 type DraftDetails = { subtitle: string; use: string; account: string; passwordLocation: string };
 type NewServiceDraft = { name: string; category: string; parentId: string };
@@ -508,7 +510,8 @@ function iconObject(node: GraphNode3D, selected: boolean) {
 function serviceLinks(service: RawService): ServiceLink[] {
   const lower = service.name.toLowerCase();
   const links: ServiceLink[] = [];
-  if (service.iconUrl) links.push({ label: \`\${service.name} docs\`, url: service.iconUrl.replace('/icons/', '/') });
+  if (service.docsUrl) links.push({ label: \`\${service.name} docs\`, url: service.docsUrl });
+  if (service.websiteUrl) links.push({ label: \`\${service.name} website\`, url: service.websiteUrl });
   if (lower.includes('firebase')) links.push({ label: 'Firebase console', url: 'https://console.firebase.google.com/' });
   if (lower.includes('google')) links.push({ label: 'Google Cloud console', url: 'https://console.cloud.google.com/' });
   if (lower.includes('cloudflare')) links.push({ label: 'Cloudflare dashboard', url: 'https://dash.cloudflare.com/' });
@@ -521,11 +524,12 @@ function serviceLinks(service: RawService): ServiceLink[] {
 }
 
 function ServiceLogo({ service }: { service: RawService & { color: string } }) {
+  const [failedUrl, setFailedUrl] = useState<string | null>(null);
   return (
     <div className="logo" style={{ background: service.color }}>
-      {service.iconUrl ? (
+      {service.iconUrl && failedUrl !== service.iconUrl ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={service.iconUrl} alt="" />
+        <img src={service.iconUrl} alt={\`\${service.name} logo\`} onError={() => setFailedUrl(service.iconUrl ?? null)} />
       ) : (
         <span>{initials(service.name)}</span>
       )}
@@ -1286,6 +1290,7 @@ async function main() {
   const options = parseArgs();
   const graph = await readJson(options.input);
   await prepareProjectLogo(graph, options.root);
+  reportMissingLogos(await prepareServiceLogos(graph, options.root));
   const route = routeFor(options.root, graph.project?.framework);
   const contents = route.kind === 'astro' ? astroPage(graph) : route.kind === 'static' ? staticHtml(graph) : tsxPage(graph);
 

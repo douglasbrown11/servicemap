@@ -61,6 +61,18 @@ Repository instructions encourage automatic skill selection; the CI freshness ch
     `cd <absolute-desktop-app-path> && npm run tauri dev`.
     Do not claim the app is open unless the launch succeeds.
 
+## Logo resolution
+
+Generation and refresh automatically resolve service logos from the bundled catalog and official website icons.
+For a missing service, add its evidence-backed name and `websiteUrl` to the canonical map, then run `refresh`.
+Never guess a company's domain or invent a logo URL.
+Preserve explicit `iconUrl` overrides and use `docsUrl` for documentation links.
+If identity is unclear, research the official website before adding it; do not replace uncertain identity with a guessed logo.
+Include generated `public/internalservicemap-assets/services/` files and `.servicemap/logo-cache/` alongside updated map data and refresh state.
+The cache lets `refresh --check` validate without network access.
+Report unresolved logos instead of claiming complete coverage.
+See [service logos](references/service-logos.md) for fallback and cache behavior.
+
 ## Safety Rules
 
 Read environment variable names only.
