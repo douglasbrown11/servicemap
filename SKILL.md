@@ -53,6 +53,8 @@ Repository instructions encourage automatic skill selection; the CI freshness ch
     Do not deploy unless the user explicitly says yes.
     If they approve, use the project's existing deployment path, preferring `npm run deploy` when present, then provider-specific project configuration such as Vercel or Netlify.
 11. Report the page or desktop app path, service count, validation run, any services marked low or medium confidence, whether requested email access was enforced, and whether deployment was skipped or completed.
+    For desktop output, explicitly include `Desktop app created at: <absolute-desktop-app-path>` in the final response, using the actual generated folder path as a clickable Markdown link.
+    Include this path even when the app launches successfully so the user can find it later.
 12. If a desktop app was created, launch the native desktop app after validation instead of relying on chat follow-up buttons.
     Open a terminal in the generated app directory and run `npm run tauri dev`.
     Keep that process running.
