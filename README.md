@@ -49,12 +49,16 @@ npx servicemap skills install --agent claude
 ```
 
 Agents with known local skill folders get the real `servicemap` skill installed.
-Symlink installs use a stable local clone at `~/.servicemap/source`, so updates can be pulled without reinstalling every agent folder.
+Symlink installs use a stable local source at `~/.servicemap/source`.
+The skill checks the latest npm release before each run and rereads its instructions after updating.
+Downloads are staged before replacement; failed downloads leave the installed skill intact.
+Copied installations update their own skill directory, and development Git checkouts skip automatic updates.
+Older installations need a one-time reinstall with `npx servicemap@latest install-skill` to receive this behavior.
 
 To update that local skill source:
 
 ```bash
-npx servicemap update
+npx servicemap@latest update
 ```
 
 Running `npx servicemap` again also refreshes the stable source before installing.

@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { updateSkill } from '../scripts/update-skill.mjs';
 import { refresh, registerRefresh } from '../scripts/refresh.mjs';
 import { spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
@@ -603,26 +604,14 @@ async function prepareStableSource(options) {
     return resolveSkillSource(sourceRoot);
   }
 
-  timelineStep(`Source: ${repositoryUrl}`);
-  await mkdir(dirname(sourceRoot), { recursive: true });
-
-  try {
-    if (existsSync(join(sourceRoot, '.git'))) {
-      await withSpinner('Updating repository…', () => runSilent('git', ['pull', '--ff-only'], { cwd: sourceRoot }));
-      stableSourceStatus = 'Repository updated';
-      timelineStep('Repository updated');
-    } else {
-      await rm(sourceRoot, { recursive: true, force: true });
-      await withSpinner('Cloning repository…', () => runSilent('git', ['clone', '--depth', '1', repositoryUrl, sourceRoot]));
-      stableSourceStatus = 'Repository cloned';
-      timelineStep('Repository cloned');
-    }
-  } catch (_error) {
-    await rm(sourceRoot, { recursive: true, force: true });
-    await cp(packageRoot, sourceRoot, { recursive: true });
-    stableSourceStatus = 'Repository unavailable; copied packaged source';
-    timelineStep('Repository unavailable; copied packaged source');
+  // Keep legacy nested symlink targets intact when updating older installations.
+  const destination = resolveSkillSource(sourceRoot);
+  if (!existsSync(destination)) {
+    await mkdir(dirname(destination), { recursive: true });
+    await cp(packageRoot, destination, { recursive: true, filter: (path) => !['.git', 'node_modules'].includes(path.split(/[/\\]/).at(-1)) });
   }
+  timelineStep(await updateSkill(destination, { allowCheckout: true }));
+  stableSourceStatus = 'Published release checked';
 
   return resolveSkillSource(sourceRoot);
 }

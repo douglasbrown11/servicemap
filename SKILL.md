@@ -12,6 +12,15 @@ Do not wait for the user to mention ServiceMap after an integration change.
 The outcome is a working `/internalservicemap` page attached to the existing website when possible.
 If no website can be found, create a desktop app fallback at `servicemap-desktop`.
 
+## Update before running
+
+Before either creation or refresh, run `node <skill-root>/scripts/update-skill.mjs` using the installed skill directory containing this file.
+This checks the latest published npm release and updates installed copies, including symlinked installations, without requiring Git.
+After an update, read `<skill-root>/SKILL.md` again and follow the updated instructions before running other scripts.
+If the check fails, continue with the existing copy and report the failure briefly.
+Development Git checkouts are intentionally left unchanged.
+Updates happen when the skill runs, not immediately when a release is published.
+
 ## Refresh an existing map
 
 When `.servicemap/internal-servicemap.json` exists, run `node <skill-root>/bin/servicemap.mjs refresh --root <project-root>` after completing integration changes.
@@ -28,8 +37,7 @@ Repository instructions encourage automatic skill selection; the CI freshness ch
 
 ## Workflow
 
-1. If this skill is installed from the stable source clone at `~/.servicemap/source`, run `git -C ~/.servicemap/source pull --ff-only` before using the scripts.
-   If the update fails because the network is unavailable, continue with the installed local copy and report that the auto-update did not complete.
+1. Complete the update check above before using the scripts.
 2. Inspect the project layout and current web framework.
 3. If the user gives a list of emails that may access the generated web page, pass them to the scan command with `--allow-email <email>` for each address or `--allow-emails <comma-separated-list>`.
 4. Run `node <skill-root>/bin/servicemap.mjs generate --root <project-root> --no-open --no-deploy`.
