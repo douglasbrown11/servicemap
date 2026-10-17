@@ -28,7 +28,7 @@ process.exit(process.argv.includes('tauri') ? 23 : 0);
     const calls = (await readFile(log, 'utf8')).trim().split('\n').map(JSON.parse);
     assert.deepEqual(calls, [
       { args: ['install'], cwd: join(root, 'servicemap-desktop') },
-      { args: ['run', 'tauri', 'dev'], cwd: join(root, 'servicemap-desktop') },
+      { args: ['run', 'tauri', 'build', '--', ...(process.platform === 'darwin' ? ['--bundles', 'app'] : ['--no-bundle'])], cwd: join(root, 'servicemap-desktop') },
     ]);
     assert.equal(result.status, 1);
     assert.match(result.stderr, /23/);

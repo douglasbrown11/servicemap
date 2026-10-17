@@ -105,8 +105,10 @@ Use `--no-deploy` to skip the prompt.
 
 ## Desktop launch
 
-After desktop generation and refresh finish, the CLI installs dependencies if `servicemap-desktop/node_modules` is missing and starts `npm run tauri dev` from `servicemap-desktop` in the target project.
-The native process stays attached to the terminal so startup failures are visible; keep the terminal running while using the app and stop it with Ctrl-C.
+After desktop generation and refresh finish, the CLI installs missing dependencies, builds a standalone native app, and opens it.
+The generated map is embedded in the app, so quitting and reopening it does not require a development server or terminal.
+On macOS, reopen `servicemap-desktop/src-tauri/target/release/bundle/macos/Internal Servicemap.app`.
+Rebuild after refreshing the map to include the latest data.
 Use `--no-open` to generate without installing dependencies or launching, or `--dry-run` to scan without generating the app or launching.
 Native launch requires the local Rust and platform prerequisites for Tauri.
 See [Desktop Fallback](references/desktop-fallback.md) for web preview and packaging commands.
@@ -176,3 +178,15 @@ The workflow checks pushes and pull requests with read-only repository permissio
 An existing workflow at that path is preserved; add the check command to it yourself if necessary.
 For other CI providers, run the same check command in your existing pipeline.
 Detection is limited to supported scanner rules; the check does not prove that every possible service was discovered.
+
+## Service category filters
+
+Generated maps include All, Infrastructure, Integrations, and Dev tools filters.
+Selecting multiple categories highlights their combined services and dims other services and connections in both 2D and 3D.
+Set `OPENAI_API_KEY` in the scanning process environment or the scanned project’s ignored `.env.local` to enable OpenAI Decisions classification.
+Keep API keys local; never include them in generated pages, committed map data, or published packages.
+The scanner sends only service names, catalog categories, and detection metadata (package names, environment variable names, hostnames, and configuration filenames), never environment values or source files.
+Classifications are cached by evidence and rule version; `refresh --check` makes no API requests or cache writes.
+Without a key or a valid API response, unmatched services remain uncategorized and visible under All.
+To override a classification, edit the service’s `groups` array in `.servicemap/internal-servicemap.json`, using `infrastructure`, `integrations`, or `developer-tools`, then run `refresh`.
+Refresh preserves these manual group edits.

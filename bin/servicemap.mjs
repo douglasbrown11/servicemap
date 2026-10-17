@@ -311,8 +311,24 @@ async function openDesktopApp(root) {
     console.log('Installing desktop app dependencies...');
     await run('npm', ['install'], { cwd: appRoot });
   }
-  console.log(`Starting native Service Map in ${appRoot}`);
-  await run('npm', ['run', 'tauri', 'dev'], { cwd: appRoot });
+  console.log(`Building standalone Service Map in ${appRoot}`);
+  const buildArgs = process.platform === 'darwin' ? ['--bundles', 'app'] : ['--no-bundle'];
+  await run('npm', ['run', 'tauri', 'build', '--', ...buildArgs], { cwd: appRoot });
+  const releaseRoot = join(appRoot, 'src-tauri', 'target', 'release');
+  const appPath = process.platform === 'darwin'
+    ? join(releaseRoot, 'bundle', 'macos', 'Internal Servicemap.app')
+    : join(releaseRoot, process.platform === 'win32' ? 'internal-servicemap.exe' : 'internal-servicemap');
+  if (!existsSync(appPath)) throw new Error(`Built desktop app not found at ${appPath}`);
+  if (process.platform === 'darwin') await run('open', [appPath]);
+  else {
+    const child = spawn(appPath, [], { detached: true, stdio: 'ignore' });
+    await new Promise((resolvePromise, reject) => {
+      child.once('error', reject);
+      child.once('spawn', resolvePromise);
+    });
+    child.unref();
+  }
+  console.log(`Desktop app created at: ${appPath}`);
 }
 
 async function openGeneratedPage(root, framework) {

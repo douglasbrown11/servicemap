@@ -13,3 +13,7 @@ no-website-demo/servicemap-desktop/src-tauri/target/
 # Rebuildable archive
 servicemap.zip
 *.tgz
+
+# Local credentials
+.env
+.env.*

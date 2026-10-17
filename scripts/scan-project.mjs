@@ -4,6 +4,8 @@ import { readFile, readdir, writeFile } from 'node:fs/promises';
 import { basename, dirname, extname, join, relative, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
+import { classifyServices, localApiKey } from './classify-services.mjs';
+
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 const skillRoot = resolve(scriptDir, '..');
 const logoDatabasePath = resolve(skillRoot, 'assets/service-logo-database.json');
@@ -115,7 +117,7 @@ function importsFromText(text) {
     ...text.matchAll(/import\s*\(\s*['"]([^'"]+)['"]\s*\)/g),
     ...text.matchAll(/require\(\s*['"]([^'"]+)['"]\s*\)/g),
   ];
-  return imports.map((match) => packageNameFromImport(match[1])).filter(Boolean);
+  return imports.map((match) => match[1]).filter(value => packageNameFromImport(value));
 }
 
 function detectFramework(root, packageJson, files) {
@@ -207,8 +209,8 @@ function matchServices({ dependencies, imports, envNames, hosts, configFiles, da
   for (const rule of rules) {
     for (const packageName of rule.packages) {
       if (!packageName) continue;
-      const matchedPackage = [...dependencySet].find((dependency) => dependency === packageName || dependency.startsWith(`${packageName}/`));
-      if (matchedPackage) addEvidence(serviceMap, rule.key, rule, { type: 'package', value: matchedPackage, confidence: 'high' });
+      const matchedPackages = [...dependencySet].filter((dependency) => dependency === packageName || dependency.startsWith(`${packageName}/`));
+      for (const matchedPackage of matchedPackages) addEvidence(serviceMap, rule.key, rule, { type: 'package', value: matchedPackage, confidence: 'high' });
     }
 
     for (const prefix of rule.envPrefixes) {
@@ -293,7 +295,7 @@ function scoreAppIconImage(image) {
   return score;
 }
 
-export async function scanProject(root, allowedEmails = []) {
+export async function scanProject(root, allowedEmails = [], { check = false, previous } = {}) {
   const options = { root: resolve(root), allowedEmails };
   const packageJsonPath = join(options.root, 'package.json');
   const packageJson = await readJson(packageJsonPath);
@@ -326,6 +328,8 @@ export async function scanProject(root, allowedEmails = []) {
     configFiles: configFiles.map((file) => basename(file)),
     database,
   });
+  const prior = previous ?? (await readJson(join(options.root, defaultOutput)))?.services ?? [];
+  await classifyServices(services, { apiKey: check ? null : await localApiKey(options.root), previous: prior, check });
   const logo = await findProjectLogo(options.root, files);
 
   const graph = {

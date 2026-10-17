@@ -61,6 +61,9 @@ function packageJson(graph) {
       '@tauri-apps/api': '^2.0.0',
     },
     devDependencies: {
+      '@types/three': '^0.185.4',
+      '@types/react': '^19.0.0',
+      '@types/react-dom': '^19.0.0',
       '@tauri-apps/cli': '^2.0.0',
     },
   }, null, 2)}\n`;

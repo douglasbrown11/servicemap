@@ -71,6 +71,13 @@ function pageCss() {
     .brand-mark img, .hub-inner img, .three-core img { width: 100%; height: 100%; object-fit: cover; border-radius: inherit; }
     .brand h1 { margin: 0; font-size: 20px; line-height: 1; letter-spacing: 0; }
     .brand p, .top-meta { margin: 6px 0 0; color: #8aa097; font-size: 14px; }
+    .group-filter { display: flex; gap: 4px; padding: 4px; border-radius: 10px; background: #0b130f; overflow-x: auto; max-width: 100%; }
+    .group-filter button { border: 0; border-radius: 7px; padding: 8px 10px; background: transparent; color: #8da59a; font: inherit; cursor: pointer; white-space: nowrap; }
+    .group-filter button[aria-pressed="true"] { background: #24533e; color: #d8fbea; }
+    .group-filter button:focus-visible { outline: 2px solid #8be4b2; outline-offset: -2px; }
+    .service-node.is-group-dimmed { opacity: .18 !important; filter: grayscale(1) brightness(.5); }
+    .edge-line.is-group-dimmed { opacity: .08 !important; animation: none; filter: none; }
+    @media (max-width: 1200px) { .servicemap-topbar { height: auto; min-height: 88px; flex-wrap: wrap; padding: 16px; } .top-actions { flex-wrap: wrap; max-width: 100%; } }
     .top-actions { display: flex; align-items: center; gap: 12px; color: #8da59a; font-size: 14px; white-space: nowrap; }
     .add-service-button { min-height: 40px; border: 0; border-radius: 10px; background: #287a5a; color: #effbf5; padding: 0 14px; cursor: pointer; font: inherit; font-weight: 800; box-shadow: 0 10px 28px rgba(54,180,126,0.16); }
     .center-button { width: 48px; height: 48px; border: 1px solid rgba(255,255,255,0.1); border-radius: 14px; background: #0b130f; color: #b4c9bf; display: grid; place-items: center; cursor: pointer; box-shadow: 0 0 0 7px rgba(47,128,91,.16); }
@@ -88,7 +95,7 @@ function pageCss() {
     .intro { position: absolute; left: 32px; top: 32px; z-index: 20; }
     .intro strong { display: block; color: #779286; font-size: 12px; letter-spacing: 0.22em; text-transform: uppercase; }
     .intro span { display: block; margin-top: 8px; color: #53665d; font-size: 14px; }
-    .edges { position: absolute; inset: 0; z-index: 26; width: 100%; height: 100%; pointer-events: none; }
+    .edges { position: absolute; inset: 0; z-index: 26; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
     .edge-line { transition: opacity 180ms ease, stroke 180ms ease; }
     .edge-line.is-active { stroke: #7ee2b8; stroke-width: 2.4px; stroke-dasharray: 1 9; stroke-linecap: round; animation: servicemapDash 640ms linear infinite; filter: drop-shadow(0 0 5px rgba(126,226,184,.9)) drop-shadow(0 0 16px rgba(93,224,165,.42)); opacity: 1; }
     .edge-line.is-muted { opacity: 0.12; }
@@ -232,10 +239,10 @@ export function htmlBody(graph) {
     ...layout[index],
     color: palette[index % palette.length],
   }));
-  const edges = nodes.map((node) => `<path d="${edgePath(node)}" fill="none" stroke="rgba(103, 130, 118, 0.48)" stroke-width="0.16" vector-effect="non-scaling-stroke"></path>`).join('');
+  const edges = nodes.map((node) => `<path class="edge-line" data-groups="${escapeHtml((node.groups ?? []).join(' '))}" d="${edgePath(node)}" fill="none" stroke="rgba(103, 130, 118, 0.48)" stroke-width="0.16" vector-effect="non-scaling-stroke"></path>`).join('');
   const projectMark = projectMarkHtml(graph);
   const serviceNodes = nodes.map((service) => `
-    <article class="service-node" style="left:${service.x}%;top:${service.y}%">
+    <article data-groups="${escapeHtml((service.groups ?? []).join(' '))}" class="service-node" style="left:${service.x}%;top:${service.y}%">
       <div class="logo" style="background:${service.color}">${service.iconUrl ? `<img src="${escapeHtml(service.iconUrl)}" alt="">` : escapeHtml(initials(service.name))}</div>
       <div class="service-copy">
         <strong>${escapeHtml(service.name)}</strong>
@@ -256,6 +263,9 @@ export function htmlBody(graph) {
           </div>
         </div>
         <div class="top-actions">
+          <div class="group-filter" role="group" aria-label="Service categories">
+            ${[['all', 'All'], ['infrastructure', 'Infrastructure'], ['integrations', 'Integrations'], ['developer-tools', 'Dev tools']].map(([group, label]) => `<button type="button" data-group="${group}" aria-pressed="${group === 'all'}" onclick="const bar=this.parentElement;if(this.dataset.group==='all'){bar.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(b===this)))}else{this.setAttribute('aria-pressed',String(this.getAttribute('aria-pressed')!=='true'));bar.querySelector('[data-group=all]').setAttribute('aria-pressed',String(!bar.querySelector('[data-group]:not([data-group=all])[aria-pressed=true]')))}const groups=Array.from(bar.querySelectorAll('[data-group]:not([data-group=all])[aria-pressed=true]')).map(b=>b.dataset.group);this.closest('main').querySelectorAll('[data-groups]').forEach(n=>n.classList.toggle('is-group-dimmed',groups.length>0 &amp;&amp; !groups.some(g=>n.dataset.groups.split(' ').includes(g))))">${label}</button>`).join('')}
+          </div>
           <span>${services.length} services</span>
           <span class="mode-toggle" aria-label="View mode">
             <span class="mode-button is-active">2D</span>
@@ -312,8 +322,10 @@ import * as THREE from 'three';
 import SpriteText from 'three-spritetext';
 
 const css = ${JSON.stringify(pageCss())};
+const groupOptions = [['infrastructure', 'Infrastructure'], ['integrations', 'Integrations'], ['developer-tools', 'Dev tools']] as const;
+function matchesGroups(service: RawService, selected: string[]) { return selected.length === 0 || selected.some(group => service.groups?.includes(group)); }
 type Evidence = { type?: string; value?: string; confidence?: string };
-type RawService = { id: string; name: string; key?: string; category?: string; confidence?: string; evidence?: Evidence[]; iconUrl?: string | null; websiteUrl?: string; docsUrl?: string; parentId?: string | null };
+type RawService = { id: string; name: string; key?: string; category?: string; groups?: string[]; confidence?: string; evidence?: Evidence[]; iconUrl?: string | null; websiteUrl?: string; docsUrl?: string; parentId?: string | null };
 type ServiceNode = RawService & { color: string; x: number; y: number };
 type DraftDetails = { subtitle: string; use: string; account: string; passwordLocation: string };
 type NewServiceDraft = { name: string; category: string; parentId: string };
@@ -373,7 +385,7 @@ function isActiveTreeEdge(sourceId: string, targetId: string, selectedId: string
   return parentIds.has(sourceId) && targetId === selectedId;
 }
 
-function Connections({ nodes, selectedId }: { nodes: ServiceNode[]; selectedId: string | null }) {
+function Connections({ nodes, selectedId, selectedGroups }: { nodes: ServiceNode[]; selectedId: string | null; selectedGroups: string[] }) {
   const ref = useRef<SVGSVGElement>(null);
   const [size, setSize] = useState({ width: 0, height: 0, nodeHalfWidth: 125 });
   const parentIds = useMemo(() => collectParentIds(nodes, selectedId), [nodes, selectedId]);
@@ -401,8 +413,9 @@ function Connections({ nodes, selectedId }: { nodes: ServiceNode[]; selectedId: 
       const dy = Math.sign(y2 - y1);
       const radius = Math.min(5, Math.abs(x2 - x1) / 4, Math.abs(y2 - y1) / 2);
       const path = \`M \${x1} \${y1} H \${middle - dx * radius} Q \${middle} \${y1} \${middle} \${y1 + dy * radius} V \${y2 - dy * radius} Q \${middle} \${y2} \${middle + dx * radius} \${y2} H \${x2}\`;
-      const active = isActiveTreeEdge(node.parentId ?? 'project', node.id, selectedId, parentIds, descendantIds);
-      return <path key={node.id} d={path} fill="none" stroke="rgba(103,130,118,.48)" strokeWidth="1.2" className={\`edge-line \${active ? 'is-active' : selectedId ? 'is-muted' : ''}\`} />;
+      const dimmed = !matchesGroups(node, selectedGroups) || (!!parent && !matchesGroups(parent, selectedGroups));
+      const active = !dimmed && isActiveTreeEdge(node.parentId ?? 'project', node.id, selectedId, parentIds, descendantIds);
+      return <path key={node.id} d={path} fill="none" stroke="rgba(103,130,118,.48)" strokeWidth="1.2" className={\`edge-line \${dimmed ? 'is-group-dimmed' : ''} \${active ? 'is-active' : selectedId ? 'is-muted' : ''}\`} />;
     })}
   </svg>;
 }
@@ -486,6 +499,7 @@ function iconObject(node: GraphNode3D, selected: boolean) {
       const size = node.isProduct ? 12 : 8.5;
       sprite.scale.set(size, size, 1);
       sprite.renderOrder = 10;
+      if (group.userData.dimmed) sprite.material.opacity = 0.16;
       group.add(sprite);
       fallback.visible = false;
     });
@@ -710,11 +724,13 @@ function AddServiceModal({
 function ServiceGraph3D({
   nodes,
   selectedId,
+  selectedGroups,
   resetKey,
   controlsRef,
   onSelect,
 }: {
   nodes: ServiceNode[];
+  selectedGroups: string[];
   selectedId: string | null;
   resetKey: number;
   controlsRef: { current: { zoom: (factor: number) => void } | null };
@@ -752,15 +768,17 @@ function ServiceGraph3D({
   }), [nodes]);
   const parentIds = useMemo(() => collectParentIds(nodes, selectedId), [nodes, selectedId]);
   const descendantIds = useMemo(() => collectDescendantIds(nodes, selectedId), [nodes, selectedId]);
+  const dimmedIds = useMemo(() => new Set(nodes.filter(node => !matchesGroups(node, selectedGroups)).map(node => node.id)), [nodes, selectedGroups]);
+  const linkDimmed = (link: GraphLink3D) => dimmedIds.has(endpointId(link.source)) || dimmedIds.has(endpointId(link.target));
   const activeTreeLinkIds = useMemo(() => {
     const ids = new Set<string>();
     graphData.links.forEach((link) => {
       const source = endpointId(link.source);
       const target = endpointId(link.target);
-      if (isActiveTreeEdge(source, target, selectedId, parentIds, descendantIds)) ids.add(link.id);
+      if (!dimmedIds.has(source) && !dimmedIds.has(target) && isActiveTreeEdge(source, target, selectedId, parentIds, descendantIds)) ids.add(link.id);
     });
     return ids;
-  }, [descendantIds, graphData.links, parentIds, selectedId]);
+  }, [descendantIds, graphData.links, parentIds, selectedId, dimmedIds]);
 
   useEffect(() => {
     const element = containerRef.current;
@@ -844,7 +862,15 @@ function ServiceGraph3D({
         showNavInfo={false}
         nodeThreeObject={(node) => {
           const serviceNode = graphNode(node);
-          return iconObject(serviceNode, serviceNode.id === selectedId);
+          const object = iconObject(serviceNode, serviceNode.id === selectedId);
+          if (dimmedIds.has(serviceNode.id)) {
+            object.traverse(child => {
+              const material = (child as THREE.Mesh).material;
+              if (material) for (const item of Array.isArray(material) ? material : [material]) { item.transparent = true; item.opacity *= 0.16; }
+            });
+            object.userData.dimmed = true;
+          }
+          return object;
         }}
         nodeLabel={(node) => {
           const serviceNode = graphNode(node);
@@ -853,6 +879,7 @@ function ServiceGraph3D({
         linkLabel={(link) => graphLink(link as GraphLink3D).label}
         linkColor={(link) => {
           const serviceLink = graphLink(link as GraphLink3D);
+          if (linkDimmed(serviceLink)) return '#080d0a';
           if (!selectedId) return '#415149';
           return activeTreeLinkIds.has(serviceLink.id) ? '#7ee2b8' : '#17211c';
         }}
@@ -865,7 +892,7 @@ function ServiceGraph3D({
         linkDirectionalArrowRelPos={0.8}
         linkDirectionalArrowColor={(link) => {
           const serviceLink = graphLink(link as GraphLink3D);
-          return activeTreeLinkIds.has(serviceLink.id) ? '#9ff0cb' : '#506158';
+          return linkDimmed(serviceLink) ? '#080d0a' : activeTreeLinkIds.has(serviceLink.id) ? '#9ff0cb' : '#506158';
         }}
         linkDirectionalParticles={(link) => {
           const serviceLink = graphLink(link as GraphLink3D);
@@ -931,6 +958,7 @@ export default function InternalServiceMapPage() {
     ...positions[service.id],
     color: palette[index % palette.length],
   })), [services, positions]);
+  const [selectedGroups, setSelectedGroups] = useState<string[]>([]);
   const [mode, setMode] = useState<'2d' | '3d'>('2d');
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
@@ -1066,6 +1094,10 @@ export default function InternalServiceMapPage() {
           </div>
         </div>
         <div className="top-actions">
+          <div className="group-filter" role="group" aria-label="Service categories">
+            <button type="button" aria-pressed={selectedGroups.length === 0} onClick={() => setSelectedGroups([])}>All</button>
+            {groupOptions.map(([group, label]) => <button key={group} type="button" aria-pressed={selectedGroups.includes(group)} onClick={() => setSelectedGroups(current => current.includes(group) ? current.filter(item => item !== group) : [...current, group])}>{label}</button>)}
+          </div>
           <span>{nodes.length} services</span>
           <div className="mode-toggle" aria-label="View mode">
             <button type="button" className={\`mode-button \${mode === '2d' ? 'is-active' : ''}\`} onClick={() => setMode('2d')}>2D</button>
@@ -1095,7 +1127,7 @@ export default function InternalServiceMapPage() {
           {mode === '2d' ? (
             <>
               <div className="map-plane" style={{ width: planeWidth, height: planeHeight, '--zoom': zoom * fitScale, '--pan-x': \`\${pan.x}px\`, '--pan-y': \`\${pan.y}px\` } as CSSProperties}>
-                <Connections nodes={nodes} selectedId={selectedId} />
+                <Connections nodes={nodes} selectedId={selectedId} selectedGroups={selectedGroups} />
                 <button type="button" className={\`hub \${selectedId === 'project' ? 'is-selected' : ''}\`} onClick={() => setSelectedId((current) => current === 'project' ? null : 'project')} aria-label={selectedId === 'project' ? \`Stop tracing \${graph.project?.name ?? 'Project'} child services\` : \`Trace \${graph.project?.name ?? 'Project'} child services\`} aria-pressed={selectedId === 'project'}><div className="hub-inner"><ProjectMark /></div></button>
                 {nodes.map((service) => {
                   const isHighlightedChild = highlightedChildIds.has(service.id);
@@ -1104,7 +1136,7 @@ export default function InternalServiceMapPage() {
                   <button
                     type="button"
                     key={service.id}
-                    className={\`service-node \${selectedId === service.id ? 'is-selected' : ''} \${isRelated ? 'is-related' : ''} \${isHighlightedChild ? 'is-highlighted-child' : ''}\`}
+                    className={\`service-node \${matchesGroups(service, selectedGroups) ? '' : 'is-group-dimmed'} \${selectedId === service.id ? 'is-selected' : ''} \${isRelated ? 'is-related' : ''} \${isHighlightedChild ? 'is-highlighted-child' : ''}\`}
                     style={{ left: \`\${service.x}%\`, top: \`\${service.y}%\` }}
                     onPointerDown={(event) => startNodeDrag(event, service)}
                     onPointerMove={moveNodeDrag}
@@ -1133,7 +1165,7 @@ export default function InternalServiceMapPage() {
               </div>
             </>
           ) : (
-            <ServiceGraph3D nodes={nodes} selectedId={selectedId} resetKey={reset3DKey} controlsRef={controls3DRef} onSelect={setSelectedId} />
+            <ServiceGraph3D nodes={nodes} selectedGroups={selectedGroups} selectedId={selectedId} resetKey={reset3DKey} controlsRef={controls3DRef} onSelect={setSelectedId} />
           )}
           <div className="zoom-controls" aria-label="Map zoom controls">
             <button type="button" className="zoom-button" onClick={zoomIn} aria-label="Zoom in">+</button>
@@ -1181,6 +1213,8 @@ function tsxPage(graph) {
 import { notFound } from 'next/navigation';
 
 const css = ${JSON.stringify(pageCss())};
+const groupOptions = [['infrastructure', 'Infrastructure'], ['integrations', 'Integrations'], ['developer-tools', 'Dev tools']] as const;
+function matchesGroups(service: RawService, selected: string[]) { return selected.length === 0 || selected.some(group => service.groups?.includes(group)); }
 const html = ${JSON.stringify(guardedHtml)};
 const allowedEmails = ${JSON.stringify(allowedEmails)};
 
@@ -1207,6 +1241,8 @@ export default async function InternalServiceMapPage() {
 function astroPage(graph) {
   return `---
 const css = ${JSON.stringify(pageCss())};
+const groupOptions = [['infrastructure', 'Infrastructure'], ['integrations', 'Integrations'], ['developer-tools', 'Dev tools']] as const;
+function matchesGroups(service: RawService, selected: string[]) { return selected.length === 0 || selected.some(group => service.groups?.includes(group)); }
 const html = ${JSON.stringify(htmlBody(graph))};
 ---
 <html lang="en">

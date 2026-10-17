@@ -50,6 +50,8 @@ Repository instructions encourage automatic skill selection; the CI freshness ch
 9. Run the project's relevant build, lint, and focused tests.
    Open the generated map in a browser and verify both 2D and 3D modes.
    Click a product or service and verify its details panel and animated illuminated dashed child-branch connections.
+   Drag service nodes beyond every side of the initial graph bounds, then pan and zoom; verify each parent-to-child line stays connected to its card.
+   Keep the SVG connection layer overflow visible; clip only at the outer map viewport.
    Verify that clicking anywhere outside an open service details panel (including the header and other service cards) closes it and returns to the normal main screen in both 2D and 3D.
    Clicking inside the panel must keep it open; the dismissal click must not activate or drag anything behind it.
    Preserve this behavior when adapting or refreshing existing maps.
@@ -64,11 +66,13 @@ Repository instructions encourage automatic skill selection; the CI freshness ch
     For desktop output, explicitly include `Desktop app created at: <absolute-desktop-app-path>` in the final response, using the actual generated folder path as a clickable Markdown link.
     Include this path even when the app launches successfully so the user can find it later.
 12. If a desktop app was created, launch the native desktop app after validation instead of relying on chat follow-up buttons.
-    Open a terminal in the generated app directory and run `npm run tauri dev`.
-    Keep that process running.
-    Report whether the native desktop app opened.
-    If Tauri, Rust, platform prerequisites, or another local issue prevents the native app from launching, report the exact failure and include this fallback command:
-    `cd <absolute-desktop-app-path> && npm run tauri dev`.
+    Build a standalone app with `npm run tauri build -- --bundles app` on macOS, then open `src-tauri/target/release/bundle/macos/Internal Servicemap.app`.
+    On other platforms, use `npm run tauri build -- --no-bundle` and launch the executable in `src-tauri/target/release`.
+    Rebuild after refreshing the map so the app includes the latest data.
+    Do not deliver `tauri dev` as the reusable app: it depends on a temporary development server and can show a blank window after reopening.
+    Verify the standalone app loads the generated map with no development server running, fully quit it, reopen the built app, and confirm the same map loads again.
+    Report the built app path and whether launch and quit/reopen verification succeeded.
+    If native building fails, report the exact failure and the build command to retry from the generated folder.
     Do not claim the app is open unless the launch succeeds.
 
 ## Logo resolution
@@ -77,6 +81,14 @@ Generation and refresh automatically resolve service logos from the bundled cata
 For a missing service, add its evidence-backed name and `websiteUrl` to the canonical map, then run `refresh`.
 Never guess a company's domain or invent a logo URL.
 Preserve explicit `iconUrl` overrides and use `docsUrl` for documentation links.
+
+### Multiple SDKs or APIs from one company
+
+When multiple SDKs or APIs from the same company are detected, use the same company logo for all of them.
+Keep each integration as a separate node with its own name and details.
+Use the same logo background color across those nodes rather than assigning different colors by list position.
+For example, Apple HealthKit, EventKit, MapKit, AlarmKit, and Push Notifications should all share one Apple logo and background.
+Preserve explicit user-selected logo overrides; otherwise resolve the company logo once and reuse the same `iconUrl` for every integration from that company.
 If identity is unclear, research the official website before adding it; do not replace uncertain identity with a guessed logo.
 Include generated `public/internalservicemap-assets/services/` files and `.servicemap/logo-cache/` alongside updated map data and refresh state.
 The cache lets `refresh --check` validate without network access.
@@ -103,3 +115,15 @@ If no website route can be safely attached, create the desktop app fallback inst
 - For route placement by framework, read [references/framework-routing.md](references/framework-routing.md).
 - For page quality expectations, read [references/page-design.md](references/page-design.md).
 - For desktop fallback behavior, read [references/desktop-fallback.md](references/desktop-fallback.md).
+
+## Service category filters
+
+Generated maps include All, Infrastructure, Integrations, and Dev tools filters.
+Selecting multiple categories highlights their combined services and dims other services and connections in both 2D and 3D.
+Set `OPENAI_API_KEY` in the scanning process environment or the scanned project’s ignored `.env.local` to enable OpenAI Decisions classification.
+Keep API keys local; never include them in generated pages, committed map data, or published packages.
+The scanner sends only service names, catalog categories, and detection metadata (package names, environment variable names, hostnames, and configuration filenames), never environment values or source files.
+Classifications are cached by evidence and rule version; `refresh --check` makes no API requests or cache writes.
+Without a key or a valid API response, unmatched services remain uncategorized and visible under All.
+To override a classification, edit the service’s `groups` array in `.servicemap/internal-servicemap.json`, using `infrastructure`, `integrations`, or `developer-tools`, then run `refresh`.
+Refresh preserves these manual group edits.

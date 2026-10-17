@@ -182,7 +182,7 @@ export async function refresh(root, { check = false } = {}) {
     }
   }
   if (state.version !== 1 || !state.surfaces?.length) throw new Error('Unsupported or incomplete ServiceMap refresh state.');
-  const fresh = await scanProject(root, current.access?.allowedEmails ?? []);
+  const fresh = await scanProject(root, current.access?.allowedEmails ?? [], { check, previous: state.detected.services });
   const next = mergeGraph(state.detected, current, fresh);
   const dataChanged = !same(next, current);
   const detectionChanged = !same(detection(state.detected), detection(fresh));
