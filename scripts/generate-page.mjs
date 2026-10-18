@@ -260,17 +260,10 @@ export function htmlBody(graph) {
   return `
     <main class="servicemap-shell">
       <header class="servicemap-topbar">
-        <div class="brand">
-          <div class="brand-mark">${projectMark}</div>
-          <div>
-            <h1>servicemap</h1>
-            <p>${escapeHtml(graph.project?.name ?? 'Project')} command center</p>
-          </div>
+        <div class="group-filter" role="group" aria-label="Service categories">
+          ${[['all', 'All'], ['infrastructure', 'Infrastructure'], ['integrations', 'Integrations'], ['developer-tools', 'Dev tools']].map(([group, label]) => `<button type="button" data-group="${group}" aria-pressed="${group === 'all'}" onclick="const bar=this.parentElement;if(this.dataset.group==='all'){bar.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(b===this)))}else{this.setAttribute('aria-pressed',String(this.getAttribute('aria-pressed')!=='true'));bar.querySelector('[data-group=all]').setAttribute('aria-pressed',String(!bar.querySelector('[data-group]:not([data-group=all])[aria-pressed=true]')))}const groups=Array.from(bar.querySelectorAll('[data-group]:not([data-group=all])[aria-pressed=true]')).map(b=>b.dataset.group);this.closest('main').querySelectorAll('[data-groups]').forEach(n=>n.classList.toggle('is-group-dimmed',groups.length>0 &amp;&amp; !groups.some(g=>n.dataset.groups.split(' ').includes(g))))">${label}</button>`).join('')}
         </div>
         <div class="top-actions">
-          <div class="group-filter" role="group" aria-label="Service categories">
-            ${[['all', 'All'], ['infrastructure', 'Infrastructure'], ['integrations', 'Integrations'], ['developer-tools', 'Dev tools']].map(([group, label]) => `<button type="button" data-group="${group}" aria-pressed="${group === 'all'}" onclick="const bar=this.parentElement;if(this.dataset.group==='all'){bar.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(b===this)))}else{this.setAttribute('aria-pressed',String(this.getAttribute('aria-pressed')!=='true'));bar.querySelector('[data-group=all]').setAttribute('aria-pressed',String(!bar.querySelector('[data-group]:not([data-group=all])[aria-pressed=true]')))}const groups=Array.from(bar.querySelectorAll('[data-group]:not([data-group=all])[aria-pressed=true]')).map(b=>b.dataset.group);this.closest('main').querySelectorAll('[data-groups]').forEach(n=>n.classList.toggle('is-group-dimmed',groups.length>0 &amp;&amp; !groups.some(g=>n.dataset.groups.split(' ').includes(g))))">${label}</button>`).join('')}
-          </div>
           <span>${services.length} services</span>
           <span class="mode-toggle" aria-label="View mode">
             <span class="mode-button is-active">2D</span>
@@ -1146,18 +1139,11 @@ export default function InternalServiceMapPage() {
     <main className="servicemap-shell">
       <style dangerouslySetInnerHTML={{ __html: css }} />
       <header className="servicemap-topbar">
-        <div className="brand">
-          <div className="brand-mark"><ProjectMark /></div>
-          <div>
-            <h1>servicemap</h1>
-            <p>{graph.project?.name ?? 'Project'} command center</p>
-          </div>
+        <div className="group-filter" role="group" aria-label="Service categories">
+          <button type="button" aria-pressed={selectedGroups.length === 0} onClick={() => setSelectedGroups([])}>All</button>
+          {groupOptions.map(([group, label]) => <button key={group} type="button" aria-pressed={selectedGroups.includes(group)} onClick={() => setSelectedGroups(current => current.includes(group) ? current.filter(item => item !== group) : [...current, group])}>{label}</button>)}
         </div>
         <div className="top-actions">
-          <div className="group-filter" role="group" aria-label="Service categories">
-            <button type="button" aria-pressed={selectedGroups.length === 0} onClick={() => setSelectedGroups([])}>All</button>
-            {groupOptions.map(([group, label]) => <button key={group} type="button" aria-pressed={selectedGroups.includes(group)} onClick={() => setSelectedGroups(current => current.includes(group) ? current.filter(item => item !== group) : [...current, group])}>{label}</button>)}
-          </div>
 ${desktop ? '' : `          <span>{nodes.length} services</span>`}
           <div className="mode-toggle" aria-label="View mode">
             <button type="button" className={\`mode-button \${mode === '2d' ? 'is-active' : ''}\`} onClick={() => setMode('2d')}>2D</button>
