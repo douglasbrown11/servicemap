@@ -180,3 +180,15 @@ test('repository setup preserves existing instructions and CI and is idempotent'
     assert.equal((await read(root, 'CLAUDE.md')).match(/servicemap:maintenance:start/g).length, 1);
   } finally { await rm(root, { recursive: true, force: true }); }
 });
+
+test('CLI refresh stays current when detected packages omit optional website metadata', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'servicemap-optional-metadata-'));
+  try {
+    await write(root, 'package.json', JSON.stringify({ name: 'optional-metadata', dependencies: { react: '*', express: '*' } }));
+    ok(run(root, 'generate', '--mode', 'desktop', '--no-open', '--no-deploy'));
+    ok(run(root, 'refresh'));
+    const before = await read(root, '.servicemap/refresh-state.json');
+    ok(run(root, 'refresh', '--check'));
+    assert.equal(await read(root, '.servicemap/refresh-state.json'), before);
+  } finally { await rm(root, { recursive: true, force: true }); }
+});

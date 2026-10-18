@@ -149,7 +149,7 @@ function addEvidence(map, key, service, evidence) {
     evidence: [],
     confidence: 'medium',
     iconUrl: service.iconUrl,
-    websiteUrl: service.websiteUrl,
+    ...(service.websiteUrl === undefined ? {} : { websiteUrl: service.websiteUrl }),
   };
   if (!existing.evidence.some((item) => item.type === evidence.type && item.value === evidence.value)) {
     existing.evidence.push(evidence);

@@ -148,6 +148,11 @@ function pageCss() {
     .section-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; color: #91a59b; font-size: 13px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; }
     .field-label { display: block; margin: 16px 0 8px; color: #83978d; font-size: 13px; }
     .details-input, .details-textarea { width: 100%; border: 1px solid #2a3c33; border-radius: 10px; background: rgba(255,255,255,0.04); color: #e9f5ee; font: inherit; padding: 13px 14px; outline: none; }
+    .logo-upload { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; }
+    .logo-upload input { min-width: 0; max-width: 100%; font: inherit; }
+    .logo-preview { width: 48px; height: 48px; object-fit: contain; border-radius: 8px; }
+    .service-category-options .parent-option { border-top: 0; }
+    .service-category-options { display: flex; flex-wrap: wrap; gap: 4px 16px; }
     .parent-picker { min-width: 0; margin: 16px 0 0; padding: 0; border: 0; }
     .parent-picker .field-label { margin: 0 0 8px; }
     .parent-options { max-height: 200px; overflow-y: auto; border: 1px solid #3c5547; border-radius: 10px; background: #101b15; }
@@ -328,7 +333,7 @@ type Evidence = { type?: string; value?: string; confidence?: string };
 type RawService = { id: string; name: string; key?: string; category?: string; groups?: string[]; confidence?: string; evidence?: Evidence[]; iconUrl?: string | null; websiteUrl?: string; docsUrl?: string; parentId?: string | null };
 type ServiceNode = RawService & { color: string; x: number; y: number };
 type DraftDetails = { subtitle: string; use: string; account: string; passwordLocation: string };
-type NewServiceDraft = { name: string; category: string; parentId: string };
+type NewServiceDraft = { name: string; category: string; group: '' | typeof groupOptions[number][0]; iconUrl: string | null; parentId: string };
 type ServiceLink = { label: string; url: string };
 type GraphNode3D = { id: string; name: string; category: string; color: string; iconUrl?: string | null; monogram: string; isProduct: boolean; x?: number; y?: number; z?: number };
 type GraphLink3D = { id: string; source: string | GraphNode3D; target: string | GraphNode3D; label: string };
@@ -656,15 +661,47 @@ function AddServiceModal({
   draft,
   nodes,
   onChange,
+  onLogoChange,
   onClose,
   onSubmit,
 }: {
   draft: NewServiceDraft;
   nodes: ServiceNode[];
   onChange: (draft: NewServiceDraft) => void;
+  onLogoChange: (iconUrl: string | null) => void;
   onClose: () => void;
   onSubmit: () => void;
 }) {
+  const [logoError, setLogoError] = useState('');
+  const [logoLoading, setLogoLoading] = useState(false);
+  const uploadLogo = async (file?: File) => {
+    if (!file) return;
+    setLogoError('');
+    if (!['image/png', 'image/jpeg', 'image/webp', 'image/gif'].includes(file.type) || file.size > 5 * 1024 * 1024) {
+      setLogoError('Choose a PNG, JPEG, WebP, or GIF under 5 MB.');
+      return;
+    }
+    setLogoLoading(true);
+    const url = URL.createObjectURL(file);
+    try {
+      const image = new Image();
+      image.src = url;
+      await image.decode();
+      const scale = Math.min(1, 512 / Math.max(image.naturalWidth, image.naturalHeight));
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
+      canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
+      const context = canvas.getContext('2d');
+      if (!context) throw new Error('Image unavailable');
+      context.drawImage(image, 0, 0, canvas.width, canvas.height);
+      onLogoChange(canvas.toDataURL('image/png'));
+    } catch {
+      setLogoError('Could not open this image. Choose another file.');
+    } finally {
+      URL.revokeObjectURL(url);
+      setLogoLoading(false);
+    }
+  };
   return (
     <>
       <div className="drawer-scrim" />
@@ -673,7 +710,7 @@ function AddServiceModal({
           <h2>Add service</h2>
           <button type="button" className="close-button" onClick={onClose} aria-label="Close add service">×</button>
         </div>
-        <div className="modal-body">
+        <form className="modal-body" onSubmit={(event) => { event.preventDefault(); if (!logoLoading) onSubmit(); }}>
           <label className="field-label" htmlFor="new-service-name">Service name</label>
           <input
             id="new-service-name"
@@ -681,6 +718,7 @@ function AddServiceModal({
             value={draft.name}
             onChange={(event) => onChange({ ...draft, name: event.target.value })}
             placeholder="Stripe, Vercel, Google Cloud"
+            required
             autoFocus
           />
 
@@ -692,6 +730,27 @@ function AddServiceModal({
             onChange={(event) => onChange({ ...draft, category: event.target.value })}
             placeholder="billing, hosting, analytics"
           />
+
+          <label className="field-label" htmlFor="new-service-logo">Logo (optional)</label>
+          <div className="logo-upload">
+            {draft.iconUrl && <img className="logo-preview" src={draft.iconUrl} alt="Service logo preview" />}
+            <input id="new-service-logo" type="file" accept="image/png,image/jpeg,image/webp,image/gif" disabled={logoLoading} onChange={(event) => { void uploadLogo(event.target.files?.[0]); event.target.value = ''; }} />
+            {draft.iconUrl && <button type="button" className="secondary-button" disabled={logoLoading} onClick={() => { onLogoChange(null); setLogoError(''); }}>Remove</button>}
+          </div>
+          {logoLoading && <p role="status">Loading logo…</p>}
+          {logoError && <p role="alert">{logoError}</p>}
+
+          <fieldset className="parent-picker">
+            <legend className="field-label">Category (required)</legend>
+            <div className="service-category-options">
+              {groupOptions.map(([group, label]) => (
+                <label key={group} className="parent-option">
+                  <input type="radio" name="new-service-group" value={group} required checked={draft.group === group} onChange={() => onChange({ ...draft, group })} />
+                  <span>{label}</span>
+                </label>
+              ))}
+            </div>
+          </fieldset>
 
           <fieldset className="parent-picker">
             <legend className="field-label">Parent service</legend>
@@ -713,9 +772,9 @@ function AddServiceModal({
 
           <div className="modal-actions">
             <button type="button" className="secondary-button" onClick={onClose}>Cancel</button>
-            <button type="button" className="save-button" onClick={onSubmit}>Add service</button>
+            <button type="submit" className="save-button" disabled={logoLoading}>Add service</button>
           </div>
-        </div>
+        </form>
       </section>
     </>
   );
@@ -998,7 +1057,7 @@ export default function InternalServiceMapPage() {
     }
   };
   const [isAddingService, setIsAddingService] = useState(false);
-  const [newService, setNewService] = useState<NewServiceDraft>({ name: '', category: '', parentId: 'product' });
+  const [newService, setNewService] = useState<NewServiceDraft>({ name: '', category: '', group: '', iconUrl: null, parentId: 'product' });
   const [drafts, setDrafts] = useState<Record<string, DraftDetails>>(() => Object.fromEntries(nodes.map((service) => [
     service.id,
     {
@@ -1048,7 +1107,7 @@ export default function InternalServiceMapPage() {
   };
   const addService = () => {
     const name = newService.name.trim();
-    if (!name) return;
+    if (!name || !groupOptions.some(([group]) => group === newService.group)) return;
     const baseId = slugify(name);
     const existingIds = new Set(services.map((service) => service.id));
     let id = baseId;
@@ -1062,9 +1121,10 @@ export default function InternalServiceMapPage() {
       key: id,
       name,
       category: newService.category.trim() || 'service',
+      groups: [newService.group],
       confidence: 'manual',
       evidence: [{ type: 'manual', value: 'Added in servicemap UI.', confidence: 'manual' }],
-      iconUrl: null,
+      iconUrl: newService.iconUrl,
       parentId: newService.parentId === 'product' ? null : newService.parentId,
     };
     setServices((current) => [...current, service]);
@@ -1078,7 +1138,7 @@ export default function InternalServiceMapPage() {
       },
     }));
     setSelectedId(id);
-    setNewService({ name: '', category: '', parentId: 'product' });
+    setNewService({ name: '', category: '', group: '', iconUrl: null, parentId: 'product' });
     setIsAddingService(false);
   };
 
@@ -1098,7 +1158,7 @@ export default function InternalServiceMapPage() {
             <button type="button" aria-pressed={selectedGroups.length === 0} onClick={() => setSelectedGroups([])}>All</button>
             {groupOptions.map(([group, label]) => <button key={group} type="button" aria-pressed={selectedGroups.includes(group)} onClick={() => setSelectedGroups(current => current.includes(group) ? current.filter(item => item !== group) : [...current, group])}>{label}</button>)}
           </div>
-          <span>{nodes.length} services</span>
+${desktop ? '' : `          <span>{nodes.length} services</span>`}
           <div className="mode-toggle" aria-label="View mode">
             <button type="button" className={\`mode-button \${mode === '2d' ? 'is-active' : ''}\`} onClick={() => setMode('2d')}>2D</button>
             <button type="button" className={\`mode-button \${mode === '3d' ? 'is-active' : ''}\`} onClick={() => setMode('3d')}>3D</button>
@@ -1120,10 +1180,10 @@ export default function InternalServiceMapPage() {
           onPointerUp={stopPan}
           onPointerCancel={stopPan}
         >
-          <div className="intro">
+${desktop ? '' : `          <div className="intro">
             <strong>{graph.project?.name ?? 'Project'} infrastructure</strong>
             <span>{selected ? \`Tracing \${selected.name}\` : selectedId === 'project' ? \`Tracing \${graph.project?.name ?? 'Project'}\` : mode === '3d' ? 'Rotate and explore your service relationships' : 'Select a service to trace its dependencies'}</span>
-          </div>
+          </div>`}
           {mode === '2d' ? (
             <>
               <div className="map-plane" style={{ width: planeWidth, height: planeHeight, '--zoom': zoom * fitScale, '--pan-x': \`\${pan.x}px\`, '--pan-y': \`\${pan.y}px\` } as CSSProperties}>
@@ -1172,10 +1232,10 @@ export default function InternalServiceMapPage() {
             <button type="button" className="zoom-button" onClick={zoomOut} aria-label="Zoom out">−</button>
             <button type="button" className="zoom-button" onClick={centerMap} aria-label="Reset zoom"><span className="fit-icon" aria-hidden="true" /></button>
           </div>
-          <footer className="scan-foot">
+${desktop ? '' : `          <footer className="scan-foot">
             <div>Generated {new Date(graph.generatedAt).toLocaleString()}</div>
             <div>{nodes.length} services detected</div>
-          </footer>
+          </footer>`}
         </section>
         {selected && drafts[selected.id] ? (
           <DetailsPanel
@@ -1188,6 +1248,7 @@ export default function InternalServiceMapPage() {
         {isAddingService ? (
           <AddServiceModal
             draft={newService}
+            onLogoChange={(iconUrl) => setNewService((current) => ({ ...current, iconUrl }))}
             nodes={nodes}
             onChange={setNewService}
             onClose={() => setIsAddingService(false)}
