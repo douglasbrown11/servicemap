@@ -18,6 +18,7 @@ test('CLI refresh adds services, preserves customizations, and checks freshness 
     await write(root, 'package.json', JSON.stringify({ name: 'example', dependencies: { stripe: '*' } }));
     await write(root, 'AGENTS.md', '# Existing instructions\nKeep this.\n');
     ok(run(root, 'generate', '--mode', 'desktop', '--no-open', '--no-deploy'));
+    await assert.rejects(read(root, '.github/workflows/servicemap-freshness.yml'), { code: 'ENOENT' });
     const dataPath = '.servicemap/internal-servicemap.json';
     const uiPath = 'servicemap-desktop/src/ServiceMap.tsx';
     const graph = JSON.parse(await read(root, dataPath));
@@ -42,7 +43,7 @@ test('CLI refresh adds services, preserves customizations, and checks freshness 
     assert.match(await read(root, uiPath), /"id":"resend"/);
     assert.match(await read(root, 'AGENTS.md'), /Keep this\./);
     assert.match(await read(root, 'AGENTS.md'), /servicemap@[^ ]+ refresh/);
-    assert.match(await read(root, '.github/workflows/servicemap-freshness.yml'), /refresh --check/);
+    await assert.rejects(read(root, '.github/workflows/servicemap-freshness.yml'), { code: 'ENOENT' });
     const stable = await read(root, dataPath);
     const stableUI = await read(root, uiPath);
     ok(run(root, 'refresh', '--check'));

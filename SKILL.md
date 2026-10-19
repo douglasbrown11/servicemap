@@ -33,7 +33,8 @@ Do not bypass conflicts by deleting refresh state or overwriting the map.
 Include `.servicemap/internal-servicemap.json`, `.servicemap/refresh-state.json`, and updated output in the integration change.
 Do not deploy or launch the map solely to refresh it.
 Report any undetected integration rather than claiming every provider is supported.
-Repository instructions encourage automatic skill selection; the CI freshness check is the enforcement backstop, not a guarantee that every AI host invokes skills.
+Repository instructions encourage automatic skill selection but cannot guarantee that every AI host invokes skills.
+Do not create CI workflows when generating or refreshing a map.
 
 ## Workflow
 
@@ -42,7 +43,7 @@ Repository instructions encourage automatic skill selection; the CI freshness ch
 3. If the user gives a list of emails that may access the generated web page, pass them to the scan command with `--allow-email <email>` for each address or `--allow-emails <comma-separated-list>`.
 4. Run `node <skill-root>/bin/servicemap.mjs generate --root <project-root> --no-open --no-deploy`.
    Include the access flags from the previous step when relevant.
-   This scans the codebase, chooses page or desktop output, and installs repository instructions and the CI freshness check.
+   This scans the codebase, chooses page or desktop output, and installs repository instructions for automatic AI maintenance.
 5. Review `.servicemap/internal-servicemap.json` for obvious false positives or missing high-confidence services.
 6. If evidence-backed corrections or annotations are needed, edit the canonical JSON and run `refresh` to update the output safely.
 7. Keep `.servicemap/refresh-state.json` alongside the map data in version control.

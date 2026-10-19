@@ -144,23 +144,7 @@ export async function installMaintenance(root) {
       : current.slice(0, begin) + instruction + current.slice(finish + end.length);
     await writeChanged(path, content);
   }
-  const workflow = join(root, '.github/workflows/servicemap-freshness.yml');
-  // Never overwrite a user-owned workflow.
-  if (!existsSync(workflow)) await writeChanged(workflow, `name: ServiceMap freshness
-on: [pull_request, push]
-permissions:
-  contents: read
-jobs:
-  freshness:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-      - name: Check map freshness
-        run: ${packageCommand} refresh --check
-`);
+
 }
 
 export async function refresh(root, { check = false } = {}) {

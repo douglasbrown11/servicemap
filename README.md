@@ -163,7 +163,7 @@ The block asks the AI to invoke the installed skill and refresh the map after in
 The skill itself also describes integration changes as a trigger.
 An AI host must support and follow those instructions; this is not a background filesystem watcher or a universal completion hook.
 
-### CI freshness check
+### Freshness check
 
 Run `npx servicemap refresh --check` to check without writing any files.
 It exits successfully for a current map and exits with status 1 for stale data, missing output/state, or a conflicting generated data section.
@@ -171,12 +171,10 @@ Checks ignore scan timestamps, absolute checkout paths, and unrelated file-count
 Commit the map JSON, generated output, and `.servicemap/refresh-state.json` together.
 The state records previous detection results and generated data sections so refresh can preserve customizations and detect conflicts.
 
-Generation and refresh create `.github/workflows/servicemap-freshness.yml` if that file does not exist.
-The installed instructions and workflow pin the generating ServiceMap package version for reproducibility.
-That package version must be available on npm before remote agents or CI can run these commands.
-The workflow checks pushes and pull requests with read-only repository permissions and does not install or execute the target project's dependencies.
-An existing workflow at that path is preserved; add the check command to it yourself if necessary.
-For other CI providers, run the same check command in your existing pipeline.
+Generation and refresh install AI maintenance instructions without creating CI workflows.
+The installed instructions pin the generating ServiceMap package version for reproducibility.
+That package version must be available on npm before remote agents can run these commands.
+Existing workflows are left unchanged.
 Detection is limited to supported scanner rules; the check does not prove that every possible service was discovered.
 
 ## Service category filters
