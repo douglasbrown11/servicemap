@@ -83,6 +83,15 @@ For a missing service, add its evidence-backed name and `websiteUrl` to the cano
 Never guess a company's domain or invent a logo URL.
 Preserve explicit `iconUrl` overrides and use `docsUrl` for documentation links.
 
+### Product logo visual verification
+
+When creating or refreshing a map, visually compare the selected product logo and other plausible repository logo images with the branding actually used in the application's UI.
+Inspect the image contents, and trace the app's branding components to establish which artwork is currently used; do not infer a visual match from filenames alone.
+Prefer the candidate whose shape, circuit or symbol details, proportions, and colors match the branding used consistently throughout the app, rather than a simplified favicon or an older variant.
+When this comparison establishes a better match, set `project.logo.path` in `.servicemap/internal-servicemap.json` to that repository asset and run `refresh` to apply it.
+Preserve an explicit user-selected logo.
+If the available evidence does not establish a clear visual match, report the uncertainty instead of claiming a candidate is verified.
+
 ### Multiple SDKs or APIs from one company
 
 When multiple SDKs or APIs from the same company are detected, use the same company logo for all of them.
