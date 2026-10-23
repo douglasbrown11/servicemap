@@ -7,7 +7,7 @@ Detection uses supported package, configuration, environment-variable-name, and 
 ## Install the skill
 
 ```bash
-npx servicemap@latest
+npx servicemap 
 ```
 
 In an interactive terminal, choose additional agent folders; the installer always includes `~/.agents/skills`.
