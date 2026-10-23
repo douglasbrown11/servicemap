@@ -4,7 +4,7 @@ Scan a software project for external services and generate a service map as a st
 Use the CLI directly or install the bundled skill for a compatible coding agent.
 Detection uses supported package, configuration, environment-variable-name, and hostname rules; review the map for missing integrations.
 
-## Install the AI skill
+## Install the skill
 
 ```bash
 npx servicemap@latest
