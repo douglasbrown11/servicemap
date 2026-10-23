@@ -56,7 +56,15 @@ For a browser preview or manual build, see [Desktop guide](references/desktop-fa
 
 ## Keep a map current
 
-After adding, changing, or removing an integration:
+When using the ServiceMap skill, your coding agent automatically refreshes the map after adding, changing, or removing an integration and checks that it is current.
+You normally do not need to run refresh commands yourself.
+
+Generation and refresh add maintenance instructions to `AGENTS.md`, `CLAUDE.md`, and `.github/copilot-instructions.md`, preserving existing instructions.
+Automatic maintenance depends on your agent following the skill or repository instructions; there is no background file watcher.
+
+### Manual refresh and troubleshooting
+
+If you change integrations manually, your agent does not follow the maintenance instructions, or you want to check the map yourself, run:
 
 ```bash
 npx servicemap@latest refresh
@@ -72,8 +80,6 @@ Refresh does not rebuild or reopen the native desktop app; rebuild it to include
 `refresh --check` checks without writing files or making logo requests and exits with status 1 when stale, missing, or conflicting.
 Commit the map JSON, generated output/assets, and `.servicemap/refresh-state.json` together.
 
-Generation and refresh add maintenance instructions to `AGENTS.md`, `CLAUDE.md`, and `.github/copilot-instructions.md`, preserving existing instructions.
-These ask participating agents to refresh after integration changes; they are not a background watcher.
 No CI workflow is created.
 
 ## Logos and categories
