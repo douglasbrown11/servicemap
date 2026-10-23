@@ -4,7 +4,7 @@ import { readFile, readdir, writeFile } from 'node:fs/promises';
 import { basename, dirname, extname, join, relative, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
-import { classifyServices, localApiKey } from './classify-services.mjs';
+import { classifyServices } from './classify-services.mjs';
 
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 const skillRoot = resolve(scriptDir, '..');
@@ -329,7 +329,7 @@ export async function scanProject(root, allowedEmails = [], { check = false, pre
     database,
   });
   const prior = previous ?? (await readJson(join(options.root, defaultOutput)))?.services ?? [];
-  await classifyServices(services, { apiKey: check ? null : await localApiKey(options.root), previous: prior, check });
+  classifyServices(services, { previous: prior });
   const logo = await findProjectLogo(options.root, files);
 
   const graph = {

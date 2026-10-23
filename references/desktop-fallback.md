@@ -1,6 +1,6 @@
-# Desktop Fallback
+# Desktop App
 
-Use the desktop fallback when no website route can be confidently attached.
+Always generate a standalone desktop app for the target project.
 
 Run:
 
@@ -39,4 +39,4 @@ If native packaging fails because Rust, platform SDKs, or Tauri prerequisites ar
 
 The generated desktop app uses the shared green Service Map network logo for its Dock and application icons.
 The project logo belongs inside the map and must not replace `src-tauri/icons` or the configured bundle icons.
-The packaged icon source is `assets/desktop-icons/service-map.svg`, derived from the SettleAI website Service Map header.
+The packaged icon source is `assets/desktop-icons/service-map.svg`.

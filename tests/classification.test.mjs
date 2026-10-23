@@ -2,33 +2,60 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { classifyServices } from '../scripts/classify-services.mjs';
 import { mergeGraph } from '../scripts/refresh.mjs';
+import { scanProject } from '../scripts/scan-project.mjs';
+import { mkdtemp, writeFile, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 const service = () => ({ id: 'firebase', name: 'Firebase', evidence: [{ type: 'package', value: 'firebase' }] });
-const response = () => ({ ok: true, json: async () => ({ answers: ['infrastructure', 'integrations', 'developer-tools'].map((name, i) => ({ name, type: 'predicate', probability: [0.99, 0.1, 0.91][i] })) }) });
-test('classification supports multiple groups, caches evidence and invalidates changes', async () => {
-  let calls = 0;
-  const fetchImpl = async (url, options) => { calls++; assert.equal(url, 'https://api.openai.com/v1/decisions'); assert.equal(JSON.parse(options.body).questions.length, 3); return response(); };
-  const first = await classifyServices([service()], { apiKey: 'test', fetchImpl });
-  assert.deepEqual(first[0].groups, ['infrastructure', 'developer-tools']);
-  await classifyServices([service()], { previous: first, apiKey: 'test', fetchImpl });
-  assert.equal(calls, 1);
-  const changed = service(); changed.evidence.push({ type: 'package', value: 'firebase-admin' });
-  await classifyServices([changed], { previous: first, apiKey: 'test', fetchImpl });
-  assert.equal(calls, 2);
+
+test('saved model and manual assignments survive changed detection evidence', () => {
+  const previous = [{ ...service(), groups: ['infrastructure', 'developer-tools'] }];
+  const changed = service();
+  changed.evidence.push({ type: 'package', value: 'firebase-admin' });
+  const result = classifyServices([changed], { previous });
+  assert.deepEqual(result[0].groups, previous[0].groups);
+  assert.equal(result[0].evidence.length, 2);
+  result[0].groups.push('integrations');
+  assert.equal(previous[0].groups.length, 2);
 });
-test('missing credentials, check mode and malformed answers fail safely', async () => {
-  let calls = 0;
-  const fetchImpl = async () => { calls++; return { ok: true, json: async () => ({ answers: [] }) }; };
-  for (const options of [{}, { apiKey: 'test', check: true }, { apiKey: 'test' }]) {
-    const result = await classifyServices([service()], { ...options, fetchImpl, warn() {} });
-    assert.deepEqual(result[0].groups, []);
-    assert.equal(result[0].classification, undefined);
+
+test('new services await agent review and invalid saved groups are ignored', () => {
+  assert.deepEqual(classifyServices([service()])[0].groups, []);
+  for (const groups of [null, 'infrastructure', ['unknown'], ['infrastructure', 'infrastructure']]) {
+    const result = classifyServices([service()], { previous: [{ ...service(), groups }] });
+    assert.deepEqual(result[0].groups, Array.isArray(groups) && groups.includes('infrastructure') ? ['infrastructure'] : []);
   }
-  assert.equal(calls, 1);
 });
-test('refresh preserves manual grouping while replacing detection evidence', async () => {
-  const services = await classifyServices([service()], { apiKey: 'test', fetchImpl: async () => response() });
-  const previous = { services, edges: [], project: { root: '/example' }, summary: {} };
+
+test('refresh preserves manual grouping while replacing detection evidence', () => {
+  const previous = { services: [{ ...service(), groups: ['infrastructure'] }], edges: [], project: { root: '/example' }, summary: {} };
   const current = structuredClone(previous); current.services[0].groups = ['integrations'];
-  const fresh = structuredClone(previous); fresh.services[0].groups = ['infrastructure'];
-  assert.deepEqual(mergeGraph(previous, current, fresh).services[0].groups, ['integrations']);
+  const fresh = structuredClone(previous);
+  fresh.services[0].evidence.push({ type: 'package', value: 'firebase-admin' });
+  const result = mergeGraph(previous, current, fresh);
+  assert.deepEqual(result.services[0].groups, ['integrations']);
+  assert.equal(result.services[0].evidence.length, 2);
+});
+
+test('real scanner needs no model API and preserves saved categories in normal and check modes', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'servicemap-categories-'));
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => { throw new Error('Scanner must not request a model'); };
+  try {
+    await writeFile(join(root, 'package.json'), JSON.stringify({ name: 'example', dependencies: { firebase: '*' } }));
+    const initial = await scanProject(root);
+    const firebase = initial.services.find(item => item.id === 'firebase');
+    assert.ok(firebase);
+    assert.deepEqual(firebase.groups, []);
+    const previous = [{ ...firebase, groups: ['infrastructure'] }];
+    for (const check of [false, true]) {
+      const result = await scanProject(root, [], { check, previous });
+      const saved = result.services.find(item => item.id === 'firebase');
+      assert.deepEqual(saved.groups, ['infrastructure']);
+      assert.equal(saved.classification, undefined);
+    }
+  } finally {
+    globalThis.fetch = originalFetch;
+    await rm(root, { recursive: true, force: true });
+  }
 });

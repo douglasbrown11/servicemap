@@ -1,3 +1,3 @@
 display_name: Servicemap
-short_description: Create or refresh a service map after third-party integration changes.
-default_prompt: Create a service map, or refresh the existing map after integration changes while preserving customizations.
+short_description: Create or refresh a standalone desktop service map.
+default_prompt: Create a standalone desktop service map, or refresh the existing desktop map after integration changes while preserving customizations.

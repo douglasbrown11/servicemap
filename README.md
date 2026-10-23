@@ -1,190 +1,101 @@
 # Servicemap
 
-Reusable `servicemap` skill package and CLI.
+Scan a software project for external services and generate a service map as a standalone desktop app.
+Use the CLI directly or install the bundled skill for a compatible coding agent.
+Detection uses supported package, configuration, environment-variable-name, and hostname rules; review the map for missing integrations.
 
-The skill scans a software project for external services, resolves service logos from a bundled database, and creates either an `/internalservicemap` website route or a desktop app fallback.
-
-## Automatic logos
-
-ServiceMap includes 3,466 bundled brand icons and resolves missing logos from an identified company's official website.
-Generation and refresh save validated images locally, preserve custom logo overrides, and reuse cached downloads offline.
-No API key or AI model is required.
-Unknown company identities need an evidence-backed `websiteUrl`; failed lookups use initials and are reported.
-See [service logos](references/service-logos.md) for custom services, cache behavior, and catalog maintenance.
-
-## Terminal Use
-
-The npm package name `servicemap` is available, so users can run the clean command and choose where to install it:
+## Install the AI skill
 
 ```bash
-npx servicemap
+npx servicemap@latest
 ```
 
-That opens the interactive install survey.
-It installs to the universal `.agents/skills` folder and lets users choose additional agent-specific skill folders.
-
-To install the bundled AI skill so `/servicemap` appears in compatible coding agents:
+In an interactive terminal, choose additional agent folders; the installer always includes `~/.agents/skills`.
+Restart your coding agent if the skill does not appear.
+Skill discovery and invocation depend on the agent.
+Ask your coding agent to create or refresh the service map using the installed `servicemap` skill.
+For a specific agent without the survey:
 
 ```bash
-npx servicemap install-skill
+npx servicemap@latest install-skill --agent codex
+npx servicemap@latest install-skill --agent claude
 ```
 
-To use an interactive Caveman-style terminal survey:
+Default installs link to `~/.servicemap/source`.
+Update that source with `npx servicemap@latest update`.
+The installed skill also checks for updates when its instructions are followed; development Git checkouts skip automatic updates.
+
+## Generate a map
+
+Run from your project directory:
 
 ```bash
-npx servicemap install-skill --survey
+npx servicemap@latest generate
 ```
 
-That installs to the Codex-style user skill folder, matching the way Caveman installs a local skill folder.
-To install for several agents on the same computer:
+Use `--root /path/to/project` to target another directory.
+The generated desktop app is written to `servicemap-desktop/` inside the project.
+
+Useful controls:
 
 ```bash
-npx servicemap install-skill --agent all
+npx servicemap@latest generate --dry-run
+npx servicemap@latest generate --no-open
+npx servicemap@latest --help
 ```
 
-The Caveman-style command shape also works:
-
-```bash
-npx servicemap skills install --agent claude
-```
-
-Agents with known local skill folders get the real `servicemap` skill installed.
-Symlink installs use a stable local source at `~/.servicemap/source`.
-The skill checks the latest npm release before each run and rereads its instructions after updating.
-Downloads are staged before replacement; failed downloads leave the installed skill intact.
-Copied installations update their own skill directory, and development Git checkouts skip automatic updates.
-Older installations need a one-time reinstall with `npx servicemap@latest install-skill` to receive this behavior.
-
-To update that local skill source:
-
-```bash
-npx servicemap@latest update
-```
-
-Running `npx servicemap` again also refreshes the stable source before installing.
-
-After a global install, the command is:
-
-```bash
-servicemap
-```
-
-Install globally:
-
-```bash
-npm install -g servicemap
-```
-
-CLI options:
-
-```bash
-servicemap
-servicemap generate --root <project-path>
-servicemap --root <project-path>
-servicemap generate --root <project-path> --allow-emails founder@example.com,ops@example.com
-servicemap generate --root <project-path> --allow-email founder@example.com --allow-email ops@example.com
-servicemap generate --root <project-path> --deploy
-servicemap generate --root <project-path> --deploy-command "npm run deploy"
-servicemap --mode page
-servicemap --mode desktop
-servicemap --dry-run
-servicemap install-skill
-servicemap install-skill --survey
-servicemap install-skill --agent codex
-servicemap install-skill --agent claude
-servicemap install-skill --agent grok
-servicemap install-skill --agent all
-servicemap install-skill --targets universal,claude,grok
-servicemap skills install --agent codex
-servicemap update
-```
-
-When a website page is generated, Servicemap prompts before deployment when it detects a deployment command.
-It prefers an existing `npm run deploy` script, then provider config such as Vercel or Netlify.
-Use `--no-deploy` to skip the prompt.
+`--dry-run` scans and writes `.servicemap/internal-servicemap.json`, but does not generate or launch the map.
+`--no-open` skips automatic opening and desktop dependency installation/building.
 
 ## Desktop launch
 
-After desktop generation and refresh finish, the CLI installs missing dependencies, builds a standalone native app, and opens it.
-The generated map is embedded in the app, so quitting and reopening it does not require a development server or terminal.
-On macOS, reopen `servicemap-desktop/src-tauri/target/release/bundle/macos/Internal Servicemap.app`.
-Rebuild after refreshing the map to include the latest data.
-Use `--no-open` to generate without installing dependencies or launching, or `--dry-run` to scan without generating the app or launching.
-Native launch requires the local Rust and platform prerequisites for Tauri.
-See [Desktop Fallback](references/desktop-fallback.md) for web preview and packaging commands.
+Generation installs dependencies, builds a native Tauri app, and opens it.
+Rust and the platform's Tauri build prerequisites must already be installed.
+On macOS, reopen `servicemap-desktop/src-tauri/target/release/bundle/macos/Internal Servicemap.app` without a development server.
+For a browser preview or manual build, see [Desktop guide](references/desktop-fallback.md).
 
-When manually adding a service, choose its parent from the scrollable radio list.
-Full parent names wrap, and the list supports keyboard navigation.
+## Keep a map current
 
-## Contents
-
-- `SKILL.md`: installable Servicemap skill entrypoint
-- `bin/servicemap.mjs`: npm CLI entrypoint
-- `scripts/scan-project.mjs`: scans a project for service evidence
-- `scripts/generate-page.mjs`: creates website routes
-- `scripts/generate-desktop-app.mjs`: creates the desktop fallback
-- `assets/service-logo-database.json`: 3,478 service records with 3,466 bundled brand icons
-
-## Validation
+After adding, changing, or removing an integration:
 
 ```bash
-node bin/servicemap.mjs generate --root demo-project --allow-emails founder@example.com,ops@example.com --dry-run
-node bin/servicemap.mjs --root no-website-demo --dry-run
-node bin/servicemap.mjs --dry-run
-node bin/servicemap.mjs install-skill --agent all --dry-run
-node bin/servicemap.mjs install-skill --targets universal,claude,grok --dry-run
-node bin/servicemap.mjs skills install --agent claude --dry-run
-python3 /Users/dougie/.codex/skills/.system/skill-creator/scripts/quick_validate.py .
+npx servicemap@latest refresh
+npx servicemap@latest refresh --check
 ```
 
-## Keep an existing map current
+Add `--root /path/to/project` when running elsewhere.
+Refresh updates existing map data while preserving custom labels, notes, manual services, and surrounding UI.
+Store customizations in `.servicemap/internal-servicemap.json`; set `manual: true` to retain a service without detected evidence.
+Direct edits to embedded generated data can cause a conflict; unsaved browser edits are not CLI input.
+Refresh does not rebuild or reopen the native desktop app; rebuild it to include updated data.
 
-Run `npx servicemap refresh` after adding, removing, or changing an integration.
-Use `--root <project>` when running outside that project.
-Refresh scans the current code, merges service data, and updates the existing map without rebuilding its surrounding UI.
-A refresh with no changes leaves map files untouched.
+`refresh --check` checks without writing files or making logo requests and exits with status 1 when stale, missing, or conflicting.
+Commit the map JSON, generated output/assets, and `.servicemap/refresh-state.json` together.
 
-Service notes, custom labels, unknown metadata fields, manual services, and access settings are preserved.
-Set `manual: true` on a service that should remain even without matching source evidence.
-Removed detected services disappear unless customized; customized records remain with `detected: false`, empty evidence, and low confidence so annotations are not lost.
-Browser-local positions are unaffected because service IDs and layout storage keys stay stable.
-Edits made only in an open browser's unsaved state are not repository data and cannot be recovered by the CLI.
+Generation and refresh add maintenance instructions to `AGENTS.md`, `CLAUDE.md`, and `.github/copilot-instructions.md`, preserving existing instructions.
+These ask participating agents to refresh after integration changes; they are not a background watcher.
+No CI workflow is created.
 
-For React output, refresh changes the embedded graph data only.
-For static, Astro, and server-protected output, it updates the generated HTML data section while preserving surrounding CSS, code, and access checks.
-If that generated section was edited directly since the last refresh, the command reports a conflict before writing any map files.
-Keep service annotations in `.servicemap/internal-servicemap.json` rather than editing the embedded generated data.
-Older maps without refresh state are adopted on their first refresh when their generated data section is recognizable.
+## Logos and categories
 
-### Automatic AI maintenance
+Thousands of bundled brand icons work without an API key.
+Missing logos can resolve from a service's known website and are cached locally; failed lookups use initials.
+Custom logos take precedence.
+See [Service logos](references/service-logos.md) for overrides and website fallback behavior.
 
-Creating or refreshing a map installs a marked maintenance block in `AGENTS.md`, `CLAUDE.md`, and `.github/copilot-instructions.md` without replacing existing instructions.
-The block asks the AI to invoke the installed skill and refresh the map after integration changes.
-The skill itself also describes integration changes as a trigger.
-An AI host must support and follow those instructions; this is not a background filesystem watcher or a universal completion hook.
+Interactive maps support 2D/3D views and category filters.
+When using the skill, your coding agent assigns service categories directly from project evidence; no separate API key or model setup is required.
+The agent reviews new or changed integrations, preserves user assignments, and leaves uncertain services uncategorized.
+The standalone CLI does not invoke an AI model; it preserves saved categories but leaves new services uncategorized and visible under All until reviewed.
+Categories describe each service's role in your project:
 
-### Freshness check
+- **Infrastructure:** hosting, databases, storage, networking, authentication, and queues.
+- **Integrations:** product capabilities such as payments, AI, email, maps, and CRM.
+- **Dev tools:** builds, testing, CI/CD, monitoring, and analytics.
 
-Run `npx servicemap refresh --check` to check without writing any files.
-It exits successfully for a current map and exits with status 1 for stale data, missing output/state, or a conflicting generated data section.
-Checks ignore scan timestamps, absolute checkout paths, and unrelated file-count changes.
-Commit the map JSON, generated output, and `.servicemap/refresh-state.json` together.
-The state records previous detection results and generated data sections so refresh can preserve customizations and detect conflicts.
+A service can belong to multiple categories when project usage supports it.
+To assign categories manually, edit each service's `groups` in `.servicemap/internal-servicemap.json` using `infrastructure`, `integrations`, or `developer-tools`, then run `refresh`.
+Refresh preserves saved group assignments.
 
-Generation and refresh install AI maintenance instructions without creating CI workflows.
-The installed instructions pin the generating ServiceMap package version for reproducibility.
-That package version must be available on npm before remote agents can run these commands.
-Existing workflows are left unchanged.
-Detection is limited to supported scanner rules; the check does not prove that every possible service was discovered.
-
-## Service category filters
-
-Generated maps include All, Infrastructure, Integrations, and Dev tools filters.
-Selecting multiple categories highlights their combined services and dims other services and connections in both 2D and 3D.
-Set `OPENAI_API_KEY` in the scanning process environment or the scanned project’s ignored `.env.local` to enable OpenAI Decisions classification.
-Keep API keys local; never include them in generated pages, committed map data, or published packages.
-The scanner sends only service names, catalog categories, and detection metadata (package names, environment variable names, hostnames, and configuration filenames), never environment values or source files.
-Classifications are cached by evidence and rule version; `refresh --check` makes no API requests or cache writes.
-Without a key or a valid API response, unmatched services remain uncategorized and visible under All.
-To override a classification, edit the service’s `groups` array in `.servicemap/internal-servicemap.json`, using `infrastructure`, `integrations`, or `developer-tools`, then run `refresh`.
-Refresh preserves these manual group edits.
+For scanner coverage, see [Detection rules](references/service-detection-rules.md).
+For agent workflows, see [SKILL.md](SKILL.md).

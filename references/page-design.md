@@ -1,6 +1,6 @@
-# Page Design
+# Desktop Interface Design
 
-The page should be useful on first load, not a marketing landing page.
+The desktop app should be useful on first load.
 
 Show:
 - Project name.
@@ -10,7 +10,7 @@ Show:
 - Service cards with logo, name, category, confidence, and strongest evidence.
 
 Keep the text concise.
-Use the host project's design system when it is easy to identify.
+Use ServiceMap's desktop design with verified project branding.
 Avoid exposing secrets or internal URLs that are not already present as public hostnames.
 
 Prefer a clean operational interface:
@@ -26,4 +26,4 @@ If the UI looks obviously off after rendering, fix the layout before finishing.
 Clicking anywhere outside an open service details panel must close it and restore the normal main screen, including clicks on the header or other service cards.
 Keep clicks inside the panel interactive without dismissing it.
 Consume the outside click so it does not activate underlying controls or start dragging the map or a service.
-Apply and verify this behavior in both 2D and 3D, for website and desktop output.
+Apply and verify this behavior in both 2D and 3D, in the desktop app.
