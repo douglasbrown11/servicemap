@@ -25,28 +25,6 @@ Default installs link to `~/.servicemap/source`.
 Update that source with `npx servicemap@latest update`.
 The installed skill also checks for updates when its instructions are followed; development Git checkouts skip automatic updates.
 
-## Generate a map
-
-Run from your project directory:
-
-```bash
-npx servicemap@latest generate
-```
-
-Use `--root /path/to/project` to target another directory.
-The generated desktop app is written to `servicemap-desktop/` inside the project.
-
-Useful controls:
-
-```bash
-npx servicemap@latest generate --dry-run
-npx servicemap@latest generate --no-open
-npx servicemap@latest --help
-```
-
-`--dry-run` scans and writes `.servicemap/internal-servicemap.json`, but does not generate or launch the map.
-`--no-open` skips automatic opening and desktop dependency installation/building.
-
 ## Desktop launch
 
 Generation installs dependencies, builds a native Tauri app, and opens it.
